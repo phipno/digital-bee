@@ -1,15 +1,15 @@
 CREATE TABLE beehives (
     beehive_id SERIAL PRIMARY KEY,
     name VARCHAR(20),
-    location GEOMETRY(Point),
+    location POINT,
     installation_date DATE,
     last_inspection_date DATE,
-    notes TEXT,
+    notes TEXT
 );
 
 CREATE TABLE sensors (
     sensor_id SERIAL PRIMARY KEY,
-    beehive_id SERIAL REFERENCES beehive_id(beehive_id),
+    beehive_id SERIAL REFERENCES beehives(beehive_id),
     sensor_type VARCHAR(20),
     name VARCHAR(50),
     installation_date TIMESTAMP
@@ -20,8 +20,8 @@ CREATE TABLE data (
     sensor_id SERIAL REFERENCES sensors(sensor_id),
     timestamp TIMESTAMP,
     value FLOAT,
-    battery_level FLOAT,
+    battery_level FLOAT
 );
 
-CREATE INDEX idx_sensor_readings_timestamp ON sensor_readings(timestamp);
-CREATE INDEX idx_sensor_readings_sensor_id ON sensor_readings(sensor_id);
+CREATE INDEX idx_data_timestamp ON data(timestamp);
+CREATE INDEX idx_data_sensor_id ON data(sensor_id);

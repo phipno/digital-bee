@@ -1,19 +1,24 @@
+#!/bin/bash
+
+set -ex
+
 sudo apt update
-sudo apt install postgresql postgresql-contrib
+sudo apt install -y postgresql postgresql-contrib
 sudo service postgresql start
 
 set -a
-source .env
+source .env || { echo "Failed to load .env file"; exit 1; }
 set +a
 
 echo "Database host: $DB_HOST"
 
-sudo -u postgres psql -h localhost
+psql -U postgres <<-EOSQL
+    CREATE DATABASE "${DB_NAME}";
+    CREATE USER "${DB_USER}" WITH PASSWORD '${DB_PASSWORD}';
+    GRANT ALL PRIVILEGES ON DATABASE "${DB_NAME}" TO "${DB_USER}";
+    ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";
+EOSQL
 
-CREATE DATABASE "$DB_NAME";
-CREATE USER "$DB_USER" WITH PASSWORD "$DB_PASSWORD";
-GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "DB_USER";
-\q
+psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f "${BEEHIVE_SCHEMA_PATH:-database_shema.sql}"
 
-psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f beehive_shema.sql
-
+echo "Database setup completed successfully"
