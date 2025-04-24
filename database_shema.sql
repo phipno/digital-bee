@@ -10,18 +10,20 @@ CREATE TABLE beehives (
 CREATE TABLE sensors (
     sensor_id SERIAL PRIMARY KEY,
     beehive_id SERIAL REFERENCES beehives(beehive_id),
-    sensor_type VARCHAR(20),
-    name VARCHAR(50),
-    installation_date TIMESTAMP
+    sensor_name VARCHAR(50),
+    sensor_type VARCHAR(50),
+    measurement_units TEXT[],
+    installation_date TIMESTAMP,
+    last_seen TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 CREATE TABLE data (
     reading_id SERIAL PRIMARY KEY,
     sensor_id SERIAL REFERENCES sensors(sensor_id),
+    beehive_id SERIAL REFERENCES beehives(beehive_id),
+    measurement_unit VARCHAR(50)
     timestamp TIMESTAMP,
-    value FLOAT,
-    battery_level FLOAT
+    value FLOAT NOT NULL, 
 );
 
-CREATE INDEX idx_data_timestamp ON data(timestamp);
-CREATE INDEX idx_data_sensor_id ON data(sensor_id);
