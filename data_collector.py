@@ -4,6 +4,8 @@ import requests
 import json
 import datetime
 import time
+import psycopg2
+from psycopg2 import sql
 
 load_dotenv()
 
@@ -14,6 +16,90 @@ wather_api_url = os.getenv('WEATHER_API_URL')
 wather_api_url = os.getenv('WEATHER_API_KEY')
 
 sensor_entities = []
+
+
+db_name = os.getenv('DB_NAME')
+db_host = os.getenv('DB_HOST')
+db_user = os.getenv('DB_USER')
+db_pass = os.getenv('DB_PASSWORD')
+db_port = os.getenv('DB_PORT')
+
+conn = psycopg2.connect(database=db_name,
+                        host='localhost',
+                        user=db_user,
+                        password=db_pass,
+                        port=db_port)
+cursor = conn.cursor()
+
+def create_sensor_entry(name, type, units, installation_date, last_seen, is_active):
+    insert_query = """
+    INSERT INTO sensors (name, location, installation_date, last_inspection_date, notes)
+    VALUES (%s, %s, TO_DATE(%s, %s), TO_DATE(%s, %s), %s)
+    """
+
+    cursor.execute(insert_query, (
+        name,
+        location,
+        installation_date[0],
+        installation_date[1],
+        last_inspection_date[0],
+        last_inspection_date[1],
+        notes
+    ))
+    conn.commit()
+
+
+def create_beehive_entry(name, location, installation_date, last_inspection_date, notes):
+    insert_query = """
+    INSERT INTO beehives (name, location, installation_date, last_inspection_date, notes)
+    VALUES (%s, %s, TO_DATE(%s, %s), TO_DATE(%s, %s), %s)
+    """
+
+    cursor.execute(insert_query, (
+        name,
+        location,
+        installation_date[0],
+        installation_date[1],
+        last_inspection_date[0],
+        last_inspection_date[1],
+        notes
+    ))
+    conn.commit()
+
+# create_beehive_entry(
+#     "Larry",
+#     "(49.15182633037482, 9.215298005933729)",
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     "Larry is standing alone, he needs some friends i guess"
+# )
+# create_beehive_entry(
+#     "TamTam",
+#     "(49.15184249515977, 9.21529330883642)",
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     "TamTam is the middle Sandwhich child"
+# )
+# create_beehive_entry(
+#     "BonBon",
+#     "(49.151846188225065, 9.215281522540364)",
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     "BonBon is the smallest of them all yet the most active"
+# )
+
+def create_data_table(sensor_id, unit, ts, value):
+    if ()
+
+
+# CREATE TABLE data (
+#     reading_id SERIAL PRIMARY KEY,
+#     sensor_id SERIAL REFERENCES sensors(sensor_id),
+#     beehive_id SERIAL REFERENCES beehives(beehive_id),
+#     measurement_unit VARCHAR(50),
+#     ts TIMESTAMP,
+#     value FLOAT NOT NULL
+# );
 
 def fetch_beehive_api_paths():
     """Fetch data from the digital beehive API"""
@@ -41,6 +127,11 @@ def fetch_sensor_groups_data():
             # TODO needs error handling or retrying and notifcation
     return responses
     
+def check_varchar_exists(table_name, column_name, value_to_check):
+    query = sql.SQL("SELECT EXISTS(SELECT 1 FROM {} WHERE {} = %s)").format(sql.Identifier(table_name), sql.Identifier(column_name))
+    cursor.execute(query, (value_to_check, ))
+    exists = cursor.fetchone()[0]
+    return exists
 
 def format_for_postgres(data):
     """For later parsing to postgres"""
@@ -66,8 +157,14 @@ def format_for_postgres(data):
             print(measurement_values)
             #TODO create function that creates postgres entries for each sensor
             #TODO create function that creates postgres entries for each measurement_units
-
-
+        units_str = ",".join(str(element) for element in measurement_units)
+        sensor_entrie = check_varchar_exists("sensors", "sensor_name", sensor_name):
+        if (sensor_entrie == False):
+            create_sensor_entry(sensor_name, sensor_type, units_str, )
+            for unit, ts, value in zip(measurement_units, measurement_ts, measurement_values):
+                
+        else 
+            #Insert into already existing datatable 
 
 response = fetch_beehive_api_paths()
 if response != None:
@@ -75,3 +172,4 @@ if response != None:
 print("PARSE: ", sensor_entities)
 data = fetch_sensor_groups_data()
 format_for_postgres(data)
+conn.close()
