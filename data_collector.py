@@ -64,44 +64,44 @@ def create_sensor_entry(beehive_id, name, type, units, installation_date, last_s
     conn.commit()
     return new_row
 
-# def create_beehive_entry(name, location, installation_date, last_inspection_date, notes):
-#     insert_query = """
-#     INSERT INTO beehives (name, location, installation_date, last_inspection_date, notes)
-#     VALUES (%s, %s, TO_DATE(%s, %s), TO_DATE(%s, %s), %s)
-#     """
+def create_beehive_entry(name, location, installation_date, last_inspection_date, notes):
+    insert_query = """
+    INSERT INTO beehives (name, location, installation_date, last_inspection_date, notes)
+    VALUES (%s, %s, TO_DATE(%s, %s), TO_DATE(%s, %s), %s)
+    """
 
-#     cursor.execute(insert_query, (
-#         name,
-#         location,
-#         installation_date[0],
-#         installation_date[1],
-#         last_inspection_date[0],
-#         last_inspection_date[1],
-#         notes
-#     ))
-#     conn.commit()
+    cursor.execute(insert_query, (
+        name,
+        location,
+        installation_date[0],
+        installation_date[1],
+        last_inspection_date[0],
+        last_inspection_date[1],
+        notes
+    ))
+    conn.commit()
 
-# create_beehive_entry(
-#     "Larry",
-#     "(49.15182633037482, 9.215298005933729)",
-#     ['2025-04-14', 'YYYY-MM-DD'],
-#     ['2025-04-14', 'YYYY-MM-DD'],
-#     "Larry is standing alone, he needs some friends i guess"
-# )
-# create_beehive_entry(
-#     "TamTam",
-#     "(49.15184249515977, 9.21529330883642)",
-#     ['2025-04-14', 'YYYY-MM-DD'],
-#     ['2025-04-14', 'YYYY-MM-DD'],
-#     "TamTam is the middle Sandwhich child"
-# )
-# create_beehive_entry(
-#     "BonBon",
-#     "(49.151846188225065, 9.215281522540364)",
-#     ['2025-04-14', 'YYYY-MM-DD'],
-#     ['2025-04-14', 'YYYY-MM-DD'],
-#     "BonBon is the smallest of them all yet the most active"
-# )
+create_beehive_entry(
+    "Larry",
+    "(49.15182633037482, 9.215298005933729)",
+    ['2025-04-14', 'YYYY-MM-DD'],
+    ['2025-04-14', 'YYYY-MM-DD'],
+    "Larry is standing alone, he needs some friends i guess"
+)
+create_beehive_entry(
+    "TamTam",
+    "(49.15184249515977, 9.21529330883642)",
+    ['2025-04-14', 'YYYY-MM-DD'],
+    ['2025-04-14', 'YYYY-MM-DD'],
+    "TamTam is the middle Sandwhich child"
+)
+create_beehive_entry(
+    "BonBon",
+    "(49.151846188225065, 9.215281522540364)",
+    ['2025-04-14', 'YYYY-MM-DD'],
+    ['2025-04-14', 'YYYY-MM-DD'],
+    "BonBon is the smallest of them all yet the most active"
+)
 
 def create_data_table(table_name):
     query = sql.SQL("""
@@ -193,23 +193,55 @@ def get_table(table_name, shema="public"):
     cursor.execute(query, (shema, table_name))
     return cursor.fetchone()[0]
 
+sensor_in_beehive = [{
+    "sensor_name": "LoRa-2CF7F1C0613005BC",
+    "beehive_id": 1,
+}, {
+    "sensor_name": "LoRa-A840411F645AE815",
+    "beehive_id": 1,
+},
+{
+    "sensor_name": "LoRa-A8404138A188669C",
+    "beehive_id": 2,
+},
+{
+    "sensor_name": "LoRa-A84041892E5A7A68",
+    "beehive_id": 2,
+},
+{
+    "sensor_name": "LoRa-A840419521864618",
+    "beehive_id": 3,
+},
+{
+    "sensor_name": "LoRa-A84041CC625AE81E",
+    "beehive_id": 3,
+}]
+
+def get_beehive_for_sensor(sensor_name):
+    for data in sensor_in_beehive:
+        if data["sensor_name"] == sensor_name:
+            print("BEEHIVE IS: ", data["beehive_id"])
+            return data["beehive_id"];
+    return 0
+
 def format_for_postgres(data):
     """For later parsing to postgres"""
     for data_group, sensor_group in zip(data, sensor_entities):
         print(sensor_group, " ", sensor_group, " ", sensor_group)
         
         sensors = data_group['entities']
-        # print(sensors)
+        print("SENSORS are sensors", sensors)
         for sensor in sensors:
             sensor_name = sensor['ENTITY_FIELD']['name']
             sensor_type = sensor['ENTITY_FIELD']['type']
+            print("SENSORS_NAME", sensor_name)
             values = sensor['TIME_SERIES']
             measurement_units = []
             measurement_ts = []
             measurement_values = []
             for value in values:
                 measurement_units.append(value)
-                # | !WHY divide by 1000 because 
+                # | !WHY divide by 1000, because 
                 # ↓ ValueError: year 57294 is out of range postgres unix time
                 measurement_ts.append(values[value]['ts'] / 1000)
                 measurement_values.append(values[value]['value'])
@@ -217,29 +249,27 @@ def format_for_postgres(data):
             print(measurement_units)
             print(measurement_ts)
             print(measurement_values)
-            #TODO create function that creates postgres entries for each sensor
-            #TODO create function that creates postgres entries for each measurement_units
-        sensor_entry = get_row_by_varchar("sensors", "sensor_name", sensor_name)
-        if (sensor_entry == None):
-            units_str = ",".join(str(element) for element in measurement_units)
-            print("New sensor found! Creating new entry/row in table:sensors, with sensor name: ", sensor_name)
-            sensor_entry = create_sensor_entry(1, sensor_name, sensor_type, units_str, ['2025-04-14', 'YYYY-MM-DD'], measurement_ts[0], True)        
-        for unit, ts, value in zip(measurement_units, measurement_ts, measurement_values):
-            table_name = sensor_name + "_" +  unit
+            sensor_entry = get_row_by_varchar("sensors", "sensor_name", sensor_name)
+            if (sensor_entry == None):
+                units_str = ",".join(str(element) for element in measurement_units)
+                print("New sensor found! Creating new entry/row in table:sensors, with sensor name: ", sensor_name)
+                sensor_entry = create_sensor_entry(get_beehive_for_sensor(sensor_name), sensor_name, sensor_type, units_str, ['2025-04-14', 'YYYY-MM-DD'], measurement_ts[0], True)        
+            for unit, ts, value in zip(measurement_units, measurement_ts, measurement_values):
+                table_name = sensor_name + "_" +  unit
 
-            data_entry = get_table(table_name)
+                data_entry = get_table(table_name)
 
-            print("DATA ENTRY: ", data_entry )
-            if (data_entry == False):
-                print("Nothing found! Creating data_entry called ", table_name)
-                print("SENSOR: ", sensor_entry[0])
-                create_data_table(table_name)
+                print("DATA ENTRY: ", data_entry )
+                if (data_entry == False):
+                    print("Nothing found! Creating data_entry called ", table_name)
+                    print("SENSOR: ", sensor_entry[0])
+                    create_data_table(table_name)
+                    # TODO insert directly into freshly created table instead of searching again
+                    # data_entry = create_data_table(table_name)
+
+                print("Inserting values into table", table_name)
                 # TODO insert directly into freshly created table instead of searching again
-                # data_entry = create_data_table(table_name)
-
-            print("Inserting values into table", table_name)
-            # TODO insert directly into freshly created table instead of searching again
-            insert_values_data(sensor_entry[0], 1, table_name, unit, ts, value)
+                insert_values_data(sensor_entry[0], get_beehive_for_sensor(sensor_name), table_name, unit, ts, value)
 
 
 

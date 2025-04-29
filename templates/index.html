@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beehive Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #ff9800;
+        }
+        .header img {
+            height: 50px;
+            margin-right: 15px;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        .beehive-list {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .beehive-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .beehive-item.active {
+            background-color: #fff8e1;
+            border-left: 3px solid #ff9800;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .time-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #f57c00;
+        }
+        .sensor-selector {
+            margin-bottom: 15px;
+        }
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🐝 Beehive Monitoring Dashboard</h1>
+    </div>
+    
+    <div class="dashboard">
+        <div class="beehive-list" id="beehiveList">
+            <h2>Beehives</h2>
+            <!-- Beehives will be loaded here -->
+        </div>
+        
+        <div class="main-content">
+            <div class="time-controls">
+                <button onclick="loadData(1)">Last Hour</button>
+                <button onclick="loadData(24)">Last 24 Hours</button>
+                <button onclick="loadData(168)">Last Week</button>
+            </div>
+            
+            <div class="sensor-selector">
+                <select id="sensorSelect">
+                    <!-- Sensors will be loaded here -->
+                </select>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="sensorChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentBeehiveId = null;
+        let currentHours = 24;
+        let sensorChart = null;
+        
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBeehives();
+        });
+        
+        // Load beehives from API
+        function loadBeehives() {
+            fetch('/api/beehives')
+                .then(response => response.json())
+                .then(data => {
+                    const beehiveList = document.getElementById('beehiveList');
+                    beehiveList.innerHTML = '<h2>Beehives</h2>';
+                    
+                    data.forEach(beehive => {
+                        const div = document.createElement('div');
+                        div.className = 'beehive-item';
+                        div.innerHTML = `
+                            <h3>${beehive.name}</h3>
+                            <p>Installed: ${beehive.installation_date}</p>
+                        `;
+                        div.addEventListener('click', () => selectBeehive(beehive.id));
+                        beehiveList.appendChild(div);
+                        
+                        // Select first beehive by default
+                        if (!currentBeehiveId) {
+                            selectBeehive(beehive.id);
+                        }
+                    });
+                });
+        }
+        
+        // Select a beehive and load its sensors
+        function selectBeehive(beehiveId) {
+            currentBeehiveId = beehiveId;
+            
+            // Update UI
+            document.querySelectorAll('.beehive-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Load sensors for this beehive
+            loadSensors(beehiveId);
+        }
+        
+        // Load sensors for selected beehive
+        function loadSensors(beehiveId) {
+            fetch('/api/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    const sensors = data.filter(sensor => sensor.beehive_id == beehiveId);
+                    const select = document.getElementById('sensorSelect');
+                    select.innerHTML = '';
+                    
+                    sensors.forEach(sensor => {
+                        // Split units (since they're stored as comma-separated string)
+                        const units = sensor.units.split(',');
+                        
+                        units.forEach(unit => {
+                            const option = document.createElement('option');
+                            option.value = `${sensor.name}|${unit}`;
+                            option.textContent = `${sensor.name} (${unit})`;
+                            select.appendChild(option);
+                        });
+                    });
+                    
+                    // Load data for first sensor by default
+                    if (sensors.length > 0) {
+                        loadData(currentHours);
+                    }
+                });
+        }
+        
+        // Load sensor data for selected time period
+        function loadData(hours) {
+            currentHours = hours;
+            const sensorSelect = document.getElementById('sensorSelect');
+            const selectedOption = sensorSelect.value.split('|');
+            const sensorName = selectedOption[0];
+            const unit = selectedOption[1];
+            
+            fetch(`/api/sensor_data/${sensorName}/${unit}/${hours}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateChart(data, sensorName, unit);
+                });
+        }
+        
+        // Update the chart with new data
+        function updateChart(data, sensorName, unit) {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            
+            // Prepare data for Chart.js
+            const labels = data.map(item => item.timestamp);
+            const values = data.map(item => item.value);
+            
+            // Destroy previous chart if it exists
+            if (sensorChart) {
+                sensorChart.destroy();
+            }
+            
+            // Create new chart
+            sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${sensorName} (${unit})`,
+                        data: values,
+                        borderColor: '#ff9800',
+                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        borderWidth: 2,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                tooltipFormat: 'MMM D, h:mm a'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: unit
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Listen for sensor selection changes
+        document.getElementById('sensorSelect').addEventListener('change', function() {
+            loadData(currentHours);
+        });
+    </script>
+</body>
+</html>
