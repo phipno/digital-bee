@@ -94,8 +94,8 @@ def get_sensor_dat(sensor_id, beehive_id, unit, hours):
     time_threshold = datetime.now() - timedelta(hours=int(hours))
     try:
         cursor.execute(
-            f"SELECT ts, value FROM data WHERE ts >= %s AND sensor_id = %s ORDER BY ts",
-            (time_threshold, sensor_id)
+            f"SELECT ts, value FROM data WHERE ts >= %s AND sensor_id = %s AND measurement_unit = %s ORDER BY ts",
+            (time_threshold, sensor_id, unit)
         )
         data = cursor.fetchall()
         
