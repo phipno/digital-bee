@@ -86,19 +86,16 @@ def get_sensors():
     
     return jsonify(sensor_list)
 
-@app.route('/api/sensor_data/<sensor_name>/<unit>/<hours>')
-def get_sensor_data(sensor_name, unit, hours):
+@app.route('/api/sensor_data/<sensor_id>/<beehive_id>/<unit>/<hours>')
+def get_sensor_dat(sensor_id, beehive_id, unit, hours):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    table_name = '"' + sensor_name + "_" + unit + '"'
-    print(table_name)
     time_threshold = datetime.now() - timedelta(hours=int(hours))
-    
     try:
         cursor.execute(
-            f"SELECT ts, value FROM {table_name} WHERE ts >= %s ORDER BY ts",
-            (time_threshold,)
+            f"SELECT ts, value FROM data WHERE ts >= %s AND sensor_id = %s ORDER BY ts",
+            (time_threshold, sensor_id)
         )
         data = cursor.fetchall()
         

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beehive Monitoring Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment"></script>
     <style>
         body {
@@ -177,11 +178,10 @@
                     sensors.forEach(sensor => {
                         // Split units (since they're stored as comma-separated string)
                         const units = sensor.units.split(',');
-                        
                         units.forEach(unit => {
                             const option = document.createElement('option');
-                            option.value = `${sensor.name}|${unit}`;
-                            option.textContent = `${sensor.name} (${unit})`;
+                            option.value = `${sensor.id}|${sensor.beehive_id}|${sensor.name}|${unit}`;
+                            option.textContent = `${sensor.id}.${sensor.beehive_id}. ${sensor.name} (${unit})`;
                             select.appendChild(option);
                         });
                     });
@@ -198,10 +198,12 @@
             currentHours = hours;
             const sensorSelect = document.getElementById('sensorSelect');
             const selectedOption = sensorSelect.value.split('|');
-            const sensorName = selectedOption[0];
-            const unit = selectedOption[1];
+            const beehive_id = selectedOption[1];
+            const sensor_id = selectedOption[0];
+            const sensorName = selectedOption[2];
+            const unit = selectedOption[3];
             
-            fetch(`/api/sensor_data/${sensorName}/${unit}/${hours}`)
+            fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
                 .then(response => response.json())
                 .then(data => {
                     updateChart(data, sensorName, unit);
@@ -213,11 +215,15 @@
             const ctx = document.getElementById('sensorChart').getContext('2d');
             
             // Prepare data for Chart.js
+            console.log(data)
             const labels = data.map(item => item.timestamp);
             const values = data.map(item => item.value);
-            
+            console.log(labels)
+            console.log(values)
+            console.log("ADSASJDLASDJL")
             // Destroy previous chart if it exists
             if (sensorChart) {
+                sensorChart.clear();
                 sensorChart.destroy();
                 // sensorChart = null;
                 console.log("DESTROY CHART", sensorChart)
@@ -238,28 +244,32 @@
                         fill: true
                     }]
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'hour',
-                                tooltipFormat: 'MMM D, h:mm a'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Time'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: unit
-                            }
-                        }
-                    }
-                }
+                // options: {
+                //     responsive: true,
+                //     scales: {
+                //         x: {
+                //             type: 'time',
+                //             time: {
+                //                 parser: 'YYYY-MM-DD HH:mm:ss',
+                //                 tooltipFormat: 'lll',
+                //                 unit: 'hour',
+                //                 displayFormats: {
+                //                     hour: 'MMM D, hA'
+                //                 }
+                //             },
+                //             title: {
+                //                 display: true,
+                //                 text: 'Time'
+                //             }
+                //         },
+                //         y: {
+                //             title: {
+                //                 display: true,
+                //                 text: unit
+                //             }
+                //         }
+                //     }
+                // }
             });
         }
         

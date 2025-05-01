@@ -18,15 +18,11 @@ CREATE TABLE sensors (
     is_active BOOLEAN DEFAULT TRUE
 );
 
--- # leave as comment only for reference
--- # CREATE TABLE sensor_name_unit (
--- #     reading_id SERIAL PRIMARY KEY,
--- #     sensor_id SERIAL REFERENCES sensors(sensor_id),
--- #     beehive_id SERIAL REFERENCES beehives(beehive_id),
--- #     measurement_unit VARCHAR(50),
--- #     ts TIMESTAMP,
--- #     value FLOAT NOT NULL
--- # ); 
-
-
-
+CREATE TABLE data (
+    reading_id SERIAL PRIMARY KEY,
+    sensor_id SERIAL REFERENCES sensors(sensor_id),
+    beehive_id SERIAL REFERENCES beehives(beehive_id),
+    measurement_unit VARCHAR(50),
+    ts TIMESTAMP,
+    value FLOAT NOT NULL
+);

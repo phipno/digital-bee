@@ -64,22 +64,22 @@ def create_sensor_entry(beehive_id, name, type, units, installation_date, last_s
     conn.commit()
     return new_row
 
-def create_beehive_entry(name, location, installation_date, last_inspection_date, notes):
-    insert_query = """
-    INSERT INTO beehives (name, location, installation_date, last_inspection_date, notes)
-    VALUES (%s, %s, TO_DATE(%s, %s), TO_DATE(%s, %s), %s)
-    """
+# def create_beehive_entry(name, location, installation_date, last_inspection_date, notes):
+#     insert_query = """
+#     INSERT INTO beehives (name, location, installation_date, last_inspection_date, notes)
+#     VALUES (%s, %s, TO_DATE(%s, %s), TO_DATE(%s, %s), %s)
+#     """
 
-    cursor.execute(insert_query, (
-        name,
-        location,
-        installation_date[0],
-        installation_date[1],
-        last_inspection_date[0],
-        last_inspection_date[1],
-        notes
-    ))
-    conn.commit()
+#     cursor.execute(insert_query, (
+#         name,
+#         location,
+#         installation_date[0],
+#         installation_date[1],
+#         last_inspection_date[0],
+#         last_inspection_date[1],
+#         notes
+#     ))
+#     conn.commit()
 
 # create_beehive_entry(
 #     "Larry",
@@ -103,28 +103,28 @@ def create_beehive_entry(name, location, installation_date, last_inspection_date
 #     "BonBon is the smallest of them all yet the most active"
 # )
 
-def create_data_table(table_name):
-    query = sql.SQL("""
-    CREATE TABLE {} (
-            reading_id SERIAL PRIMARY KEY,
-            sensor_id SERIAL REFERENCES sensors(sensor_id),
-            beehive_id SERIAL REFERENCES beehives(beehive_id),
-            measurement_unit VARCHAR(50),
-            ts TIMESTAMP,
-            value FLOAT NOT NULL
-        )
-    """).format(sql.Identifier(table_name))
+# def create_data_table(table_name):
+#     query = sql.SQL("""
+#     CREATE TABLE {} (
+#             reading_id SERIAL PRIMARY KEY,
+#             sensor_id SERIAL REFERENCES sensors(sensor_id),
+#             beehive_id SERIAL REFERENCES beehives(beehive_id),
+#             measurement_unit VARCHAR(50),
+#             ts TIMESTAMP,
+#             value FLOAT NOT NULL
+#         )
+#     """).format(sql.Identifier(table_name))
 
-    cursor.execute(query)
+#     cursor.execute(query)
 
-    conn.commit()
-    return
+#     conn.commit()
+#     return
 
-def insert_values_data(sensor_id, beehive_id, table_name, unit, ts, value):
-    query = sql.SQL("""
-    INSERT INTO {} (sensor_id, beehive_id, measurement_unit, ts, value)
+def insert_values_data(sensor_id, beehive_id, unit, ts, value):
+    query = """
+    INSERT INTO data (sensor_id, beehive_id, measurement_unit, ts, value)
     VALUES (%s, %s, %s, to_timestamp(%s), %s)
-    """).format(sql.Identifier(table_name))
+    """
 
     cursor.execute(query, (
         sensor_id,
@@ -255,21 +255,7 @@ def format_for_postgres(data):
                 print("New sensor found! Creating new entry/row in table:sensors, with sensor name: ", sensor_name)
                 sensor_entry = create_sensor_entry(get_beehive_for_sensor(sensor_name), sensor_name, sensor_type, units_str, ['2025-04-14', 'YYYY-MM-DD'], measurement_ts[0], True)        
             for unit, ts, value in zip(measurement_units, measurement_ts, measurement_values):
-                table_name = sensor_name + "_" +  unit
-
-                data_entry = get_table(table_name)
-
-                print("DATA ENTRY: ", data_entry )
-                if (data_entry == False):
-                    print("Nothing found! Creating data_entry called ", table_name)
-                    print("SENSOR: ", sensor_entry[0])
-                    create_data_table(table_name)
-                    # TODO insert directly into freshly created table instead of searching again
-                    # data_entry = create_data_table(table_name)
-
-                print("Inserting values into table", table_name)
-                # TODO insert directly into freshly created table instead of searching again
-                insert_values_data(sensor_entry[0], get_beehive_for_sensor(sensor_name), table_name, unit, ts, value)
+                insert_values_data(sensor_entry[0], get_beehive_for_sensor(sensor_name), unit, ts, value)
 
 
 
