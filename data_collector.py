@@ -81,27 +81,27 @@ def create_beehive_entry(name, location, installation_date, last_inspection_date
     ))
     conn.commit()
 
-create_beehive_entry(
-    "Larry",
-    "(49.15182633037482, 9.215298005933729)",
-    ['2025-04-14', 'YYYY-MM-DD'],
-    ['2025-04-14', 'YYYY-MM-DD'],
-    "Larry is standing alone, he needs some friends i guess"
-)
-create_beehive_entry(
-    "TamTam",
-    "(49.15184249515977, 9.21529330883642)",
-    ['2025-04-14', 'YYYY-MM-DD'],
-    ['2025-04-14', 'YYYY-MM-DD'],
-    "TamTam is the middle Sandwhich child"
-)
-create_beehive_entry(
-    "BonBon",
-    "(49.151846188225065, 9.215281522540364)",
-    ['2025-04-14', 'YYYY-MM-DD'],
-    ['2025-04-14', 'YYYY-MM-DD'],
-    "BonBon is the smallest of them all yet the most active"
-)
+# create_beehive_entry(
+#     "Larry",
+#     "(49.15182633037482, 9.215298005933729)",
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     "Larry is standing alone, he needs some friends i guess"
+# )
+# create_beehive_entry(
+#     "TamTam",
+#     "(49.15184249515977, 9.21529330883642)",
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     "TamTam is the middle Sandwhich child"
+# )
+# create_beehive_entry(
+#     "BonBon",
+#     "(49.151846188225065, 9.215281522540364)",
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     ['2025-04-14', 'YYYY-MM-DD'],
+#     "BonBon is the smallest of them all yet the most active"
+# )
 
 def create_data_table(table_name):
     query = sql.SQL("""

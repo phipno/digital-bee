@@ -91,7 +91,8 @@ def get_sensor_data(sensor_name, unit, hours):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    table_name = f"{sensor_name}_{unit}"
+    table_name = '"' + sensor_name + "_" + unit + '"'
+    print(table_name)
     time_threshold = datetime.now() - timedelta(hours=int(hours))
     
     try:
@@ -108,7 +109,6 @@ def get_sensor_data(sensor_name, unit, hours):
                 'timestamp': row[0].strftime('%Y-%m-%d %H:%M:%S'),
                 'value': row[1]
             })
-        
         return jsonify(data_list)
     
     except psycopg2.Error as e:

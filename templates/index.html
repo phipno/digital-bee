@@ -137,20 +137,23 @@
                             <h3>${beehive.name}</h3>
                             <p>Installed: ${beehive.installation_date}</p>
                         `;
-                        div.addEventListener('click', () => selectBeehive(beehive.id));
+                        div.addEventListener('click', event => selectBeehive(event, "msg", beehive.id));
                         beehiveList.appendChild(div);
                         
                         // Select first beehive by default
-                        if (!currentBeehiveId) {
-                            selectBeehive(beehive.id);
-                        }
+                        // if (!currentBeehiveId) {
+                        //     selectBeehive("default",beehive.id);
+                        // }
                     });
                 });
         }
         
         // Select a beehive and load its sensors
-        function selectBeehive(beehiveId) {
+        function selectBeehive(event, msg, beehiveId) {
             currentBeehiveId = beehiveId;
+            console.log("Event is: ", event)
+            console.log("MSG is: ", msg)
+            console.log("Beehive_id: ", beehiveId)
             
             // Update UI
             document.querySelectorAll('.beehive-item').forEach(item => {
@@ -216,8 +219,11 @@
             // Destroy previous chart if it exists
             if (sensorChart) {
                 sensorChart.destroy();
+                // sensorChart = null;
+                console.log("DESTROY CHART", sensorChart)
             }
-            
+            console.log("AFTER DELETE", sensorChart)
+            console.log(ctx)
             // Create new chart
             sensorChart = new Chart(ctx, {
                 type: 'line',
