@@ -67,7 +67,7 @@ class BeehiveDataCollector:
         """Generic method to fetch API data"""
         try:
             response = requests.get(
-                f"{self.api_url}{endpoint}?x-apikey={self.api_key}",
+                f"{self.api_url}{endpoint}x-apikey={self.api_key}",
                 timeout=10
             )
             response.raise_for_status()
@@ -78,7 +78,7 @@ class BeehiveDataCollector:
 
     def get_sensor_entities(self):
         """Fetch and parse sensor entities from API"""
-        response = self.fetch_api_data("")
+        response = self.fetch_api_data("?")
         if response:
             self.sensor_entities = [group['authGroupName'] for group in response['authGroup']]
         return self.sensor_entities
@@ -95,7 +95,7 @@ class BeehiveDataCollector:
         self.get_sensor_entities()
         
         for sensor_group in self.sensor_entities:
-            data = self.fetch_api_data(f"/{sensor_group}/entityId?page=0")
+            data = self.fetch_api_data(f"/{sensor_group}/entityId?page=0&")
             if data:
                 self.process_sensor_data(data['entities'], sensor_group)
 
@@ -180,6 +180,7 @@ class BeehiveDataCollector:
             while True:
                 print("Starting data collection cycle...")
                 self.collect_sensor_data()
+                print("All Data stored succesfully")
                 print(f"Sleeping for {interval} seconds...")
                 time.sleep(interval)
         except KeyboardInterrupt:
