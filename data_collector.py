@@ -30,8 +30,10 @@ class BeehiveDataCollector:
         self.sensor_beehive_mapping = [
             {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 1},
             {"sensor_name": "LoRa-A840411F645AE815", "beehive_id": 1},
+            {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 2},
             {"sensor_name": "LoRa-A8404138A188669C", "beehive_id": 2},
             {"sensor_name": "LoRa-A84041892E5A7A68", "beehive_id": 2},
+            {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 3},
             {"sensor_name": "LoRa-A840419521864618", "beehive_id": 3},
             {"sensor_name": "LoRa-A84041CC625AE81E", "beehive_id": 3}
         ]
@@ -83,12 +85,13 @@ class BeehiveDataCollector:
             self.sensor_entities = [group['authGroupName'] for group in response['authGroup']]
         return self.sensor_entities
 
-    def get_beehive_id_for_sensor(self, sensor_name):
+    def get_beehive_ids_for_sensor(self, sensor_name):
         """Get beehive ID for a given sensor"""
+        beehive_relations = []
         for mapping in self.sensor_beehive_mapping:
             if mapping["sensor_name"] == sensor_name:
-                return mapping["beehive_id"]
-        return 0
+                beehive_relations.append(mapping["beehive_id"])
+        return beehive_relations
 
     def collect_sensor_data(self):
         """Main method to collect and store sensor data"""
@@ -106,13 +109,14 @@ class BeehiveDataCollector:
             time_series = sensor['TIME_SERIES']
             
             sensor_name = sensor_info['name']
-            beehive_id = self.get_beehive_id_for_sensor(sensor_name)
+            beehive_ids = self.get_beehive_ids_for_sensor(sensor_name)
             
-            if not beehive_id:
+            if not beehive_ids:
                 print(f"No beehive mapping found for sensor: {sensor_name}")
                 continue
                 
-            self.store_sensor_data(sensor_info, time_series, beehive_id)
+            for bee_id in beehive_ids:
+                self.store_sensor_data(sensor_info, time_series, bee_id)
 
     def store_sensor_data(self, sensor_info, time_series, beehive_id):
         """Store sensor data in database"""

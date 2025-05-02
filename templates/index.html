@@ -218,18 +218,11 @@
             console.log(data)
             const labels = data.map(item => item.timestamp);
             const values = data.map(item => item.value);
-            console.log(labels)
-            console.log(values)
-            console.log("ADSASJDLASDJL")
             // Destroy previous chart if it exists
             if (sensorChart) {
                 sensorChart.clear();
                 sensorChart.destroy();
-                // sensorChart = null;
-                console.log("DESTROY CHART", sensorChart)
             }
-            console.log("AFTER DELETE", sensorChart)
-            console.log(ctx)
             // Create new chart
             sensorChart = new Chart(ctx, {
                 type: 'line',
