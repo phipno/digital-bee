@@ -19,4 +19,8 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
 # Change default shell to Zsh
 RUN chsh -s $(which zsh)
 
+COPY script.sh script.sh
+RUN chmod +x script.sh
+# RUN [ "./script.sh" ]
+
 CMD ["zsh"]

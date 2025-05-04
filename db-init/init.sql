@@ -1,4 +1,3 @@
--- SERIAL for auto incrementing
 
 CREATE TABLE if NOT EXISTS Location (
 	ID SERIAL PRIMARY KEY,

@@ -1,0 +1,75 @@
+🗂️ PostgreSQL Key Constraints Cheat Sheet
+🔑 Primary Key
+Ensures unique, non-null values (usually used for IDs).
+
+sql
+Kopieren
+Bearbeiten
+ID SERIAL PRIMARY KEY
+OR for composite keys:
+
+sql
+Kopieren
+Bearbeiten
+PRIMARY KEY (column1, column2)
+🔗 Foreign Key
+Creates a relationship to another table.
+
+sql
+Kopieren
+Bearbeiten
+-- Define the column first
+ColumnName INTEGER,
+
+-- Then add the constraint
+FOREIGN KEY (ColumnName) REFERENCES OtherTable(OtherColumn)
+Example:
+
+sql
+Kopieren
+Bearbeiten
+BeehiveID INTEGER NOT NULL,
+FOREIGN KEY (BeehiveID) REFERENCES Beehive(ID)
+With cascade options:
+
+sql
+Kopieren
+Bearbeiten
+FOREIGN KEY (BeehiveID)
+  REFERENCES Beehive(ID)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE
+🔐 Unique Constraint
+For enforcing uniqueness (e.g., usernames, email addresses):
+
+sql
+Kopieren
+Bearbeiten
+Email TEXT UNIQUE
+Or multi-column:
+
+sql
+Kopieren
+Bearbeiten
+UNIQUE (column1, column2)
+✅ Not Null
+Ensures that a column must always have a value:
+
+sql
+Kopieren
+Bearbeiten
+Name TEXT NOT NULL
+🧪 Check Constraint
+Restricts values using a condition:
+
+sql
+Kopieren
+Bearbeiten
+Temperature REAL CHECK (Temperature >= -50 AND Temperature <= 100)
+🧠 Tips
+Use Case	Recommended Type/Constraint
+Auto-incrementing ID	SERIAL PRIMARY KEY
+Link to another table	INTEGER + FOREIGN KEY
+Optional foreign key	Remove NOT NULL
+Unique name	TEXT UNIQUE
+Enforce numeric range	CHECK (...)
