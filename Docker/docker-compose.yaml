@@ -1,0 +1,31 @@
+services:
+  ubuntu_service:
+    build: .
+    container_name: ubu
+    image: ubui:latest
+    volumes:
+      - ../.:/app
+    working_dir: /app
+    stdin_open: true  # Keeps STDIN open for interactive shell
+    tty: true         # Allocates a pseudo-TTY
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: youruser
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: beehive_monitoring
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+volumes:
+  db_data:  # ✅ Declare the named volume
