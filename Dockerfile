@@ -13,14 +13,18 @@ RUN apt-get install -y \
     zsh \
     nano
 
+RUN apt install -y \
+    python3 \
+    python3-pip \
+    python3-requests \
+    python3-dotenv \
+    python3-matplotlib
+
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && zsh
+
 
 
 # Change default shell to Zsh
 RUN chsh -s $(which zsh)
-
-COPY script.sh script.sh
-RUN chmod +x script.sh
-# RUN [ "./script.sh" ]
 
 CMD ["zsh"]

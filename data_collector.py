@@ -34,6 +34,7 @@ def fetch_sensor_groups_data():
     for sensor in sensor_entities:
         try:
             response = requests.get(beehive_api_url + "/" + sensor + "/entityId" + "?page=0" + "&x-apikey=" + beehive_api_key)
+            print(beehive_api_url + "/" + sensor + "/entityId" + "?page=0" + "&x-apikey=" + beehive_api_key)
             response.raise_for_status()
             responses.append(response.json())
         except requests.exceptions.RequestException as e:
