@@ -2,10 +2,11 @@ from dotenv import load_dotenv
 import requests
 import os
 # import json
-import urllib.parse
-import matplotlib.pyplot as plt
+# import urllib.parse
+
 from datetime import datetime
 
+import psycopg2
 
 
 load_dotenv()
@@ -34,7 +35,57 @@ def get_entities_for_authgroup(group):
 	# response.raise_for_status() #?
 	return response.json()
 
+###############################################################################
+conn_params = {
+    "host": "192.168.178.42",
+    "port": 5432,
+    "dbname": "beehive_monitoring",
+    "user": "youruser",
+    "password": "yourpassword"
+}
+###############################################################################
 
+def save_to_postgres(entities, conn_params):
+    conn = psycopg2.connect(**conn_params)
+    cursor = conn.cursor()
+
+    create_table = """
+    CREATE TABLE IF NOT EXISTS sensor_data (
+        id UUID,
+        name TEXT,
+        type TEXT,
+        key TEXT,
+        value TEXT,
+        timestamp_ms BIGINT,
+        timestamp_iso TIMESTAMPTZ
+    )
+    """
+    cursor.execute(create_table)
+
+    insert_query = """
+    INSERT INTO sensor_data (id, name, type, key, value, timestamp_ms, timestamp_iso)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+
+    for device in entities:
+        device_id = device.get("entityId", {}).get("id", "")
+        device_type = device.get("ENTITY_FIELD", {}).get("type", "")
+        name = device.get("ENTITY_FIELD", {}).get("name", "")
+        timeseries = device.get("TIME_SERIES", {})
+
+        for key, value in timeseries.items():
+            raw_ts = value.get("ts")
+            val = value.get("value")
+            ts_iso = datetime.fromtimestamp(raw_ts / 1000.0) if raw_ts else None
+
+            cursor.execute(insert_query, (
+                device_id, name, device_type, key, val, raw_ts, ts_iso
+            ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+###############################################################################
 
 def main():
 	all_entities = []
@@ -46,25 +97,25 @@ def main():
 		# print(entities)
 		all_entities.extend(entities["entities"])
 	for device in all_entities:
-		entity_id = device.get("entityId", {}).get("id", "")
-		entity_type = device.get("ENTITY_FIELD", {}).get("type", "")
+		device_id = device.get("entityId", {}).get("id", "")
+		device_type = device.get("ENTITY_FIELD", {}).get("type", "")
 		name = device.get("ENTITY_FIELD", {}).get("name", "")
 		attrs = device.get("SERVER_ATTRIBUTE", {})
 		timeseries = device.get("TIME_SERIES", {})
 
-		# latitude = attrs.get("latitude", {}).get("value", "")
-		# longitude = attrs.get("longitude", {}).get("value", "")
 		location = attrs.get("location", {}).get("value", "")
 
-		print(f"Device: {name} ({entity_type})")
-		print(f"  ID: {entity_id}")
-		print(f"  Location: {location}")
+		# print(f"Device: {name} ({device_type})")
+		# print(f"  ID: {device_id}")
+		# print(f"  Location: {location}")
 
 		for key, value in timeseries.items():
 			timestamp = value.get('ts')
 			time = datetime.fromtimestamp(timestamp / 1000)
-			print(f"  {key}: {value.get('value')})") (time: {time.strftime("%d/%m/%Y, %H:%M:%S")})")
+			print(f"  {key}: {value.get('value')}) time: {time.strftime("%d/%m/%Y, %H:%M:%S")})")
 		print()
+	save_to_postgres(all_entities, conn_params)
+
 
 if __name__ == "__main__":
 	main()

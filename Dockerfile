@@ -18,7 +18,7 @@ RUN apt install -y \
     python3-pip \
     python3-requests \
     python3-dotenv \
-    python3-matplotlib
+    python3-psycopg2
 
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && zsh
 
