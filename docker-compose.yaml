@@ -1,0 +1,86 @@
+services:
+  dashboard:
+    build: ./dashboard
+    container_name: dashboard
+    volumes:
+      - ./dashboard:/app
+    working_dir: /app
+    stdin_open: true  # Keeps STDIN open for interactive shell
+    tty: true
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: ${DB_PORT}
+      DASHBOARD_PORT: ${DASHBOARD_PORT}
+    ports:
+      - 5000:5000
+    networks:
+      - bee_net
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+  data_collector:
+    build: ./data_collector
+    container_name: data_collector
+    volumes:
+      - ./data_collector:/app
+    working_dir: /app
+    stdin_open: true  # Keeps STDIN open for interactive shell
+    tty: true
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PORT: ${DB_PORT}
+      BEEHIVE_API_URL: ${BEEHIVE_API_URL}
+      BEEHIVE_API_KEY: ${BEEHIVE_API_KEY}
+      COLLECTION_INTERVAL: ${COLLECTION_INTERVAL}
+    networks:
+      - bee_net
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+
+  postgres_db:
+    image: postgres
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PORT: ${DB_PORT}
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d
+    networks:
+      - bee_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  adminer:
+    image: adminer
+    restart: always
+    depends_on:
+      - postgres_db
+    ports:
+      - 8080:8080
+    networks:
+      - bee_net
+
+networks:
+  bee_net:
+    name: bee-network
+    driver: bridge
+
+volumes:
+  db_data:  # ✅ Declare the named volume

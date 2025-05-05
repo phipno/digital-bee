@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta
 
+
 app = Flask(__name__)
 
 # Load environment variables
@@ -21,16 +22,20 @@ load_dotenv()
 
 # Database connection
 def get_db_connection():
-    conn = psycopg2.connect(
-        database=os.getenv('DB_NAME'),
-        # host=os.getenv('DB_HOST'),
-        host='localhost',
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        port=os.getenv('DB_PORT')
-    )
-    return conn
-
+    try:
+        return psycopg2.connect(
+            host=os.getenv('DB_HOST'),
+            database=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            port=os.getenv('DB_PORT'),
+            connect_timeout=3,
+            application_name="dashboard"  # Add this identifier
+        )
+    except psycopg2.Error as e:
+        print(f"Connection failed: {e}")
+        raise
+    
 @app.route('/')
 def index():
     return render_template('index.html')
