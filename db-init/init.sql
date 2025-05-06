@@ -1,51 +1,44 @@
-
-CREATE TABLE if NOT EXISTS Location (
-	ID SERIAL PRIMARY KEY,
-	Name TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS location (
+	id SERIAL PRIMARY KEY,
+	location_name TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Beehive (
-    ID SERIAL PRIMARY KEY,
-    InstallationDate TIMESTAMP NOT NULL,
-    LocationID INTEGER NOT NULL,
-
-    FOREIGN KEY (LocationID) REFERENCES Location(ID)
+CREATE TABLE IF NOT EXISTS beehive (
+	id SERIAL PRIMARY KEY,
+	installation_date TIMESTAMP NOT NULL,
+	location_id INTEGER NOT NULL,
+	FOREIGN KEY (location_id) REFERENCES location(id)
 );
 
-CREATE TABLE if NOT EXISTS Sensor (
-	ID UUID PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS sensor (
+	id UUID PRIMARY KEY,
 	device_type TEXT,
 	device_name TEXT,
-	LastActivity TIMESTAMP NOT NULL DEFAULT now(),
-	BeehiveID INTEGER NOT NULL DEFAULT 1
-
-	-- FOREIGN KEY (BeehiveID) REFERENCES Beehive(ID)
+	last_activity TIMESTAMP NOT NULL DEFAULT now(),
+	beehive_id INTEGER NOT NULL DEFAULT 1
+	-- FOREIGN KEY (beehive_id) REFERENCES beehive(id)
 );
 
-CREATE TABLE if NOT EXISTS MeasurementType (
-	ID SERIAL PRIMARY KEY,
-	Name TEXT,
-	Unit TEXT,
-	Description TEXT
+CREATE TABLE IF NOT EXISTS measurement_type (
+	id SERIAL PRIMARY KEY,
+	name TEXT UNIQUE,
+	unit TEXT
 );
 
-CREATE TABLE IF NOT EXISTS SensorMeasurement (
-	ID SERIAL PRIMARY KEY,
-	SensorID UUID NOT NULL,
-	MeasurementTypeID INTEGER NOT NULL,
-	
-	FOREIGN KEY (SensorID) REFERENCES Sensor(ID),
-	FOREIGN KEY (MeasurementTypeID) REFERENCES MeasurementType(ID)
+CREATE TABLE IF NOT EXISTS sensor_measurement (
+	id SERIAL PRIMARY KEY,
+	sensor_id UUID NOT NULL,
+	measurement_type_id INTEGER NOT NULL,
+	FOREIGN KEY (sensor_id) REFERENCES sensor(id),
+	FOREIGN KEY (measurement_type_id) REFERENCES measurement_type(id)
 );
 
-
-CREATE TABLE if NOT EXISTS Data (
-	ID SERIAL PRIMARY KEY,
-	Value DOUBLE PRECISION NOT NULL,
-	Time	TIMESTAMP NOT NULL,
-	SensorID UUID NOT NULL,
-	MeasurementTypeID INTEGER NOT NULL,
-
-	FOREIGN KEY (SensorID) REFERENCES Sensor(ID),
-	FOREIGN KEY (MeasurementTypeID) REFERENCES MeasurementType(ID)
+CREATE TABLE IF NOT EXISTS data (
+	id SERIAL PRIMARY KEY,
+	value DOUBLE PRECISION NOT NULL,
+	time TIMESTAMP NOT NULL,
+	sensor_id UUID NOT NULL,
+	measurement_type_id INTEGER NOT NULL,
+	FOREIGN KEY (sensor_id) REFERENCES sensor(id),
+	FOREIGN KEY (measurement_type_id) REFERENCES measurement_type(id)
 );

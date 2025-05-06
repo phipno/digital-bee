@@ -17,6 +17,7 @@ weather_api_key = os.getenv('WEATHER_API_KEY')
 beehive_api_url = os.getenv('BEEHIVE_API_URL')
 beehive_api_key = os.getenv('BEEHIVE_API_KEY')
 
+###############################################################################
 
 def get_auth_groups():
 	url = beehive_api_url + "?x-apikey=" + beehive_api_key
@@ -26,6 +27,7 @@ def get_auth_groups():
 	return response.json()["authGroup"]
 	
 	
+###############################################################################
 
 
 def get_entities_for_authgroup(group):
@@ -35,7 +37,9 @@ def get_entities_for_authgroup(group):
 	# response.raise_for_status() #?
 	return response.json()
 
+
 ###############################################################################
+
 conn_params = {
 	"host": "db",
 	"port": 5432,
@@ -43,109 +47,127 @@ conn_params = {
 	"user": "user",
 	"password": "pass"
 }
+
 ###############################################################################
 
-# def save_to_postgres(entities, conn_params):
-# 	conn = psycopg2.connect(**conn_params)
-# 	cursor = conn.cursor()
-
-# 	create_table = """
-# 	CREATE TABLE IF NOT EXISTS sensor_data (
-# 		id UUID,
-# 		name TEXT,
-# 		type TEXT,
-# 		key TEXT,
-# 		value TEXT,
-# 		timestamp_ms BIGINT,
-# 		timestamp_iso TIMESTAMPTZ
-# 	)
-# 	"""
-# 	cursor.execute(create_table)
-
-# 	insert_query = """
-# 	INSERT INTO sensor_data (id, name, type, key, value, timestamp_ms, timestamp_iso)
-# 	VALUES (%s, %s, %s, %s, %s, %s, %s)
-# 	"""
-
-# 	for device in entities:
-# 		device_id = device.get("entityId", {}).get("id", "")
-# 		device_type = device.get("ENTITY_FIELD", {}).get("type", "")
-# 		name = device.get("ENTITY_FIELD", {}).get("name", "")
-# 		timeseries = device.get("TIME_SERIES", {})
-
-# 		for key, value in timeseries.items():
-# 			raw_ts = value.get("ts")
-# 			val = value.get("value")
-# 			ts_iso = datetime.fromtimestamp(raw_ts / 1000.0) if raw_ts else None
-
-# 			cursor.execute(insert_query, (
-# 				device_id, name, device_type, key, val, raw_ts, ts_iso
-# 			))
-
-# 	conn.commit()
-# 	cursor.close()
-# 	conn.close()
-###############################################################################
-###############################################################################
-
-def save_to_postgres2(entities, conn_params):
+def saveToPostgres_location(location):
 	conn = psycopg2.connect(**conn_params)
 	cursor = conn.cursor()
 
+	print(f"  Location: {location}✅")
+
 	insert_query = """
-	INSERT INTO sensor	 (ID, device_type, device_name)
-	VALUES (%s, %s, %s)
+	INSERT INTO location (ID, location_name)
+	VALUES (%s, %s)
+	ON CONFLICT (ID) DO NOTHING
 	"""
 
-	for device in entities:
-		device_id = device.get("entityId", {}).get("id", "")
-		device_type = device.get("ENTITY_FIELD", {}).get("type", "")
-		device_name = device.get("ENTITY_FIELD", {}).get("name", "")
-		timeseries = device.get("TIME_SERIES", {})
-
-		# for key, value in timeseries.items():
-		# 	raw_ts = value.get("ts")
-		# 	val = value.get("value")
-		# 	ts_iso = datetime.fromtimestamp(raw_ts / 1000.0) if raw_ts else None
-		cursor.execute(insert_query, (device_id, device_type, device_name))
+	cursor.execute(insert_query, (1, location))
 
 	conn.commit()
 	cursor.close()
 	conn.close()
+
+###############################################################################
+def saveToPostgres_devices(device):
+	conn = psycopg2.connect(**conn_params)
+	cursor = conn.cursor()
+
+	device_id = device.get("entityId", {}).get("id", "")
+	device_type = device.get("ENTITY_FIELD", {}).get("type", "")
+	device_name = device.get("ENTITY_FIELD", {}).get("name", "")
+
+	print(f"Device: {device_name} ({device_type})✅")
+	print(f"  ID: {device_id}✅")
+	
+	insert_query = """
+	INSERT INTO sensor	 (ID, device_type, device_name)
+	VALUES (%s, %s, %s)
+	ON CONFLICT (ID) DO NOTHING
+	"""
+
+	cursor.execute(insert_query, (device_id, device_type, device_name))
+
+	conn.commit()
+	cursor.close()
+	conn.close()
+
+###############################################################################
+
+def saveToPostgres_data(timeseries):
+	conn = psycopg2.connect(**conn_params)
+	cursor = conn.cursor()
+
+	unit_map = {
+		"lightIntensity": "%",
+		"rainGauge": "?",
+		"relativeHumidity": "%"+ "rF",
+		"temperature": "°C",
+		"tempC1": "°C",
+		"tempC2": "°C",
+		"tempC3": "°C",
+		"pressure": "hPa",
+		"windDirection": "NSOW",
+		"uvIndex": "UVI",
+		"windSpeed": "km/h",
+	}
+
+	for key, list in timeseries.items():
+		timestamp = list.get('ts')
+		time = datetime.fromtimestamp(timestamp / 1000)
+		print(f"  {key}✅: {list.get('value')}❌ time: {time.strftime("%d/%m/%Y, %H:%M:%S")}❌")
+		name = key
+
+		unit = ""
+		for u in unit_map:
+			if u.lower() in name.lower():
+				# print(f"Found unit: {u} => {unit_map[u]}")
+				unit = unit_map[u]
+				break
+
+		insert_query = """
+		INSERT INTO measurement_type (name, unit)
+		VALUES (%s, %s)
+		ON CONFLICT (name) DO NOTHING
+		"""
+		cursor.execute(insert_query, (name, unit))
+
+		value = list.get('value')
+		t = time.strftime("%d/%m/%Y, %H:%M:%S")
+		
+		insert_query = """
+		INSERT INTO data (value, time)
+		VALUES (%s, %s)
+		"""
+		cursor.execute(insert_query, (value, t))
+
+	conn.commit()
+	cursor.close()
+	conn.close()
+
 ###############################################################################
 
 def main():
 	all_entities = []
 	auth_groups = get_auth_groups()
-	# print(auth_groups)
+	print(auth_groups)
 	for group in auth_groups:
 		name = group["authGroupName"]
 		entities = get_entities_for_authgroup(name)
 		# print(entities)
 		all_entities.extend(entities["entities"])
 	for device in all_entities:
-		device_id = device.get("entityId", {}).get("id", "")
-		device_type = device.get("ENTITY_FIELD", {}).get("type", "")
-		device_name = device.get("ENTITY_FIELD", {}).get("name", "")
+		saveToPostgres_devices(device)
+
 		attrs = device.get("SERVER_ATTRIBUTE", {})
-		timeseries = device.get("TIME_SERIES", {})
-
 		location = attrs.get("location", {}).get("value", "")
+		saveToPostgres_location(location)
 
-		print(f"Device: {device_name} ({device_type})")
-		print(f"  ID: {device_id}")
-		print(f"  Location: {location}")
 
-		for key, value in timeseries.items():
-			timestamp = value.get('ts')
-			time = datetime.fromtimestamp(timestamp / 1000)
-			print(f"  {key}: {value.get('value')}) time: {time.strftime("%d/%m/%Y, %H:%M:%S")})")
-		print()
-	save_to_postgres2(all_entities, conn_params)
+		timeseries = device.get("TIME_SERIES", {})
+		saveToPostgres_data(timeseries)
 
 ###############################################################################
 
 if __name__ == "__main__":
 	main()
-
-
