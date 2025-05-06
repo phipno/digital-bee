@@ -16,9 +16,10 @@
             color: #333;
         }
         .header {
+            max-height: 10vh;
             display: flex;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 2vh;
         }
         .header h1 {
             margin: 0;
@@ -29,15 +30,18 @@
             margin-right: 15px;
         }
         .dashboard {
-            display: grid;
-            grid-template-columns: 300px 1fr;
+            display: flex;
             gap: 20px;
+            max-height: 88vh;
         }
         .beehive-list {
             background: white;
             border-radius: 8px;
-            padding: 15px;
+            padding: 1.5vh;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: 100%;
+            width: 20%;
+            overflow-y: auto;
         }
         .beehive-item {
             padding: 10px;
@@ -52,11 +56,37 @@
         .chart-container {
             background: white;
             border-radius: 8px;
-            padding: 15px;
+            padding: 1.5vh;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            height: 75vh;
+            overflow-y: auto;
         }
-        .time-controls {
+        .bee-sensor-charts {
+            display: flex;
+            height:70%;
+            width: 100%;
+        }
+        .weather-sensor-chart {
+            display: flex;
+            height: 30%;
+            width: 100%;
+        }
+        .sensorChart {
+            flex-grow: 1;
+            flex-basis: 0; /* Allow charts to grow/shrink */
+            max-width: 33.33%; /* Ensure no chart exceeds 33.33% width (3 items per row) */
+            box-sizing: border-box; /* Prevents padding and border from affecting width */
+            text-align: center;
+            padding: 10px;
+            margin: 5px; /* Optional: space between the charts */
+            border: 1px solid #ccc; /* Optional: for better visibility */
+        }
+        .main-content {
+            max-width: calc(100vw - 300px);
+            height: 100%;
+        }
+        .controls {
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
@@ -71,9 +101,6 @@
         }
         button:hover {
             background-color: #f57c00;
-        }
-        .sensor-selector {
-            margin-bottom: 15px;
         }
         select {
             padding: 8px;
@@ -94,20 +121,32 @@
         </div>
         
         <div class="main-content">
-            <div class="time-controls">
-                <button onclick="loadData(1)">Last Hour</button>
-                <button onclick="loadData(24)">Last 24 Hours</button>
-                <button onclick="loadData(168)">Last Week</button>
-            </div>
-            
-            <div class="sensor-selector">
-                <select id="sensorSelect">
-                    <!-- Sensors will be loaded here -->
-                </select>
+            <div class="controls">
+
+                <div class="time-controls">
+                    <button onclick="loadData(1)">Last Hour</button>
+                    <button onclick="loadData(24)">Last 24 Hours</button>
+                    <button onclick="loadData(168)">Last Week</button>
+                </div>
+                
+                <div class="sensor-selector">
+                    <select id="sensorSelect">
+                        <!-- Sensors will be loaded here -->
+                    </select>
+                </div>
             </div>
             
             <div class="chart-container">
-                <canvas id="sensorChart"></canvas>
+                <div class="bee-sensor-charts">
+                    <!-- <canvas id="sensorChart"></canvas>
+                    <canvas id="sensorChart"></canvas>
+                    <canvas id="sensorChart"></canvas>
+                    <canvas id="sensorChart"></canvas>
+                    <canvas id="sensorChart"></canvas> -->
+                </div>
+                <div class="weather-sensor-chart">
+                    <!-- <canvas id="weatherSensorChart"></canvas> -->
+                </div>
             </div>
         </div>
     </div>
@@ -116,7 +155,7 @@
         // Global variables
         let currentBeehiveId = null;
         let currentHours = 24;
-        let sensorChart = null;
+        let sensorCharts = [null];
         
         // Initialize the dashboard
         document.addEventListener('DOMContentLoaded', function() {
@@ -175,6 +214,7 @@
                     const select = document.getElementById('sensorSelect');
                     select.innerHTML = '';
                     
+                    
                     sensors.forEach(sensor => {
                         // Split units (since they're stored as comma-separated string)
                         const units = sensor.units.split(',');
@@ -186,6 +226,12 @@
                         });
                     });
                     
+                    //creating option for large dashboard
+                    const dashboard_option = document.createElement('option');
+                    dashboard_option.value = `Dashboard view`;
+                    dashboard_option.textContent = `Dashboard view for ${beehiveId}`;
+                    select.appendChild(dashboard_option);
+
                     // Load data for first sensor by default
                     if (sensors.length > 0) {
                         loadData(currentHours);
@@ -193,38 +239,84 @@
                 });
         }
         
+        function createDashboardView(hours, sensorSelect) {
+            for (option of sensorSelect.children) {
+                if (option.value == 'Dashboard view')
+                    continue;
+                selectedOption = option.value.split('|');
+                const beehive_id = selectedOption[1];
+                const sensor_id = selectedOption[0];
+                const sensorName = selectedOption[2];
+                const unit = selectedOption[3];
+                fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const canva = document.createElement('canvas');
+                        const ctx = canva.getContext('2d')
+                        canva.classList.add('sensorChart');
+                        if (sensorName ===  "LoRa-2CF7F1C0613005BC") {
+                            const container = document.getElementsByClassName('weather-sensor-chart')[0];
+                            container.insertBefore(canva, container.firstChild);
+                        } else {
+                            const container = document.getElementsByClassName('bee-sensor-charts')[0];
+                            container.insertBefore(canva, container.firstChild); 
+                        }
+                        updateChart(ctx, data, sensorName, unit);
+                    });
+            }
+        }
+
         // Load sensor data for selected time period
         function loadData(hours) {
             currentHours = hours;
             const sensorSelect = document.getElementById('sensorSelect');
-            const selectedOption = sensorSelect.value.split('|');
-            const beehive_id = selectedOption[1];
-            const sensor_id = selectedOption[0];
-            const sensorName = selectedOption[2];
-            const unit = selectedOption[3];
+            let selectedOption = sensorSelect.value
+
+            const s = document.getElementsByClassName('bee-sensor-charts')[0];
+            const w = document.getElementsByClassName('weather-sensor-chart')[0];
+            s.innerHTML = '';
+            w.innerHTML = '';
             
-            fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateChart(data, sensorName, unit);
-                });
+            sensorCharts.forEach(chart => {
+                if (chart !== null) {
+                    chart.destroy(); // Properly destroy the chart
+                }
+            }); 
+
+            if (selectedOption == 'Dashboard view') {
+                createDashboardView(hours, sensorSelect);
+                return;
+            } else {
+                selectedOption = selectedOption.split('|');
+                const beehive_id = selectedOption[1];
+                const sensor_id = selectedOption[0];
+                const sensorName = selectedOption[2];
+                const unit = selectedOption[3];
+                fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const canva = document.createElement('canvas');
+                        const ctx = canva.getContext('2d')
+                        canva.classList.add('sensorChart');
+                        const container = document.getElementsByClassName('bee-sensor-charts')[0];
+                        container.insertBefore(canva, container.firstChild);
+                        updateChart(ctx, data, sensorName, unit);
+                    });
+            }
         }
         
         // Update the chart with new data
-        function updateChart(data, sensorName, unit) {
-            const ctx = document.getElementById('sensorChart').getContext('2d');
+        function updateChart(ctx, data, sensorName, unit) {
+            // const ctx = document.getElementById('sensorChart').getContext('2d');
             
             // Prepare data for Chart.js
             console.log(data)
             const labels = data.map(item => item.timestamp);
             const values = data.map(item => item.value);
-            // Destroy previous chart if it exists
-            if (sensorChart) {
-                sensorChart.clear();
-                sensorChart.destroy();
-            }
+
+   
             // Create new chart
-            sensorChart = new Chart(ctx, {
+            sensorCharts.push(new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
@@ -237,33 +329,33 @@
                         fill: true
                     }]
                 },
-                // options: {
-                //     responsive: true,
-                //     scales: {
-                //         x: {
-                //             type: 'time',
-                //             time: {
-                //                 parser: 'YYYY-MM-DD HH:mm:ss',
-                //                 tooltipFormat: 'lll',
-                //                 unit: 'hour',
-                //                 displayFormats: {
-                //                     hour: 'MMM D, hA'
-                //                 }
-                //             },
-                //             title: {
-                //                 display: true,
-                //                 text: 'Time'
-                //             }
-                //         },
-                //         y: {
-                //             title: {
-                //                 display: true,
-                //                 text: unit
-                //             }
-                //         }
-                //     }
-                // }
-            });
+            //     options: {
+            //         responsive: true,
+            //         scales: {
+            //             x: {
+            //                 type: 'time',
+            //                 time: {
+            //                     parser: 'YYYY-MM-DD HH:mm:ss',
+            //                     tooltipFormat: 'lll',
+            //                     unit: 'hour',
+            //                     displayFormats: {
+            //                         hour: 'MMM D, hA'
+            //                     }
+            //                 },
+            //                 title: {
+            //                     display: true,
+            //                     text: 'Time'
+            //                 }
+            //             },
+            //             y: {
+            //                 title: {
+            //                     display: true,
+            //                     text: unit
+            //                 }
+            //             }
+            //         }
+            //     }
+            }));
         }
         
         // Listen for sensor selection changes

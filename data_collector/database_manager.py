@@ -24,7 +24,8 @@ class DatabaseManager:
         try:
             self.conn = psycopg2.connect(
                 database=os.getenv('DB_NAME'),
-                host=os.getenv('DB_HOST'),
+                # host=os.getenv('DB_HOST'),
+                host=os.getenv('localhost'),
                 user=os.getenv('DB_USER'),
                 password=os.getenv('DB_PASSWORD'),
                 port=os.getenv('DB_PORT')
@@ -58,6 +59,16 @@ class DatabaseManager:
             sql.Identifier(column_name)
         )
         return self.execute_query(query, (value,), fetch=True)
+
+    def get_row_by_two_values(self, table_name, column_name, column_name2, value, value2):
+        """Get a row by two column values"""
+        query = sql.SQL("SELECT * FROM {} WHERE {} = %s AND {} = %s").format(
+            sql.Identifier(table_name),
+            sql.Identifier(column_name),
+            sql.Identifier(column_name2)
+        )
+
+        return self.execute_query(query, (value, value2), fetch=True)
 
     def table_exists(self, table_name, schema="public"):
         """Check if table exists in database"""

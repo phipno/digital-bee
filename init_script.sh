@@ -19,6 +19,6 @@ psql -U postgres <<-EOSQL
     ALTER DATABASE "${DB_NAME}" OWNER TO "${DB_USER}";
 EOSQL
 
-psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f "${BEEHIVE_SCHEMA_PATH:-database_shema.sql}"
+psql -U "$DB_USER" -d "$DB_NAME" -h localhost -f "${BEEHIVE_SCHEMA_PATH:-./db-init/init.sql}"
 
 echo "Database setup completed successfully"

@@ -131,7 +131,7 @@ class BeehiveDataCollector:
             values.append(data['value'])
         
         # Check if sensor exists or create new
-        sensor_entry = self.db.get_row_by_value("sensors", "sensor_name", sensor_name)
+        sensor_entry = self.db.get_row_by_two_values("sensors", "sensor_name", "beehive_id", sensor_name, beehive_id)
         if not sensor_entry:
             print(f"New sensor found: {sensor_name}")
             sensor_entry = self.create_sensor_entry(
