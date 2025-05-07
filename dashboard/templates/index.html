@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -75,7 +77,6 @@
         .sensorChart {
             flex-grow: 1;
             flex-basis: 0; /* Allow charts to grow/shrink */
-            max-width: 33.33%; /* Ensure no chart exceeds 33.33% width (3 items per row) */
             box-sizing: border-box; /* Prevents padding and border from affecting width */
             text-align: center;
             padding: 10px;
@@ -257,11 +258,13 @@
                         if (sensorName ===  "LoRa-2CF7F1C0613005BC") {
                             const container = document.getElementsByClassName('weather-sensor-chart')[0];
                             container.insertBefore(canva, container.firstChild);
+                            const waether_station = true;
+                            updateChart(ctx, data, sensorName, unit, waether_station);
                         } else {
                             const container = document.getElementsByClassName('bee-sensor-charts')[0];
                             container.insertBefore(canva, container.firstChild); 
+                            updateChart(ctx, data, sensorName, unit);
                         }
-                        updateChart(ctx, data, sensorName, unit);
                     });
             }
         }
@@ -271,15 +274,16 @@
             currentHours = hours;
             const sensorSelect = document.getElementById('sensorSelect');
             let selectedOption = sensorSelect.value
-
+            
             const s = document.getElementsByClassName('bee-sensor-charts')[0];
             const w = document.getElementsByClassName('weather-sensor-chart')[0];
-            s.innerHTML = '';
-            w.innerHTML = '';
-            
+            if (s)
+                s.innerHTML = '';
+            if (w)
+                w.innerHTML = '';
             sensorCharts.forEach(chart => {
                 if (chart !== null) {
-                    chart.destroy(); // Properly destroy the chart
+                    chart.destroy(); 
                 }
             }); 
 
@@ -305,8 +309,23 @@
             }
         }
         
+        function isGapTooBig(context) {
+            const MAX_GAP = 1000 * 60 * 60 * 3 //3 hours in ms
+
+            const prevPoint = context.p0;
+            const nextPoint = context.p1;
+
+            if (!prevPoint || !nextPoint)
+                return true;
+
+            const prevTime = prevPoint.parsed ? new Date(prevPoint.parsed.x) : new Date(prevPoint.x);
+            const nextTime = nextPoint.parsed ? new Date(nextPoint.parsed.x) : new Date(nextPoint.x);
+            
+            return Math.abs(nextTime - prevTime) > MAX_GAP;
+        }
+
         // Update the chart with new data
-        function updateChart(ctx, data, sensorName, unit) {
+        function updateChart(ctx, data, sensorName, unit, waether_station = false) {
             // const ctx = document.getElementById('sensorChart').getContext('2d');
             
             // Prepare data for Chart.js
@@ -316,6 +335,10 @@
 
    
             // Create new chart
+            const borderColor = waether_station ? '#0055FF' : '#ff9800';
+            const backgroundColor = waether_station ? 'rgba(0, 152, 255, 0.1)' : 'rgba(255, 152, 0, 0.1)';
+
+
             sensorCharts.push(new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -323,38 +346,44 @@
                     datasets: [{
                         label: `${sensorName} (${unit})`,
                         data: values,
-                        borderColor: '#ff9800',
-                        backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                        borderColor: borderColor,
+                        backgroundColor: backgroundColor,
                         borderWidth: 2,
-                        fill: true
+                        fill: true,
+                        segment: {
+                            borderColor: ctx => isGapTooBig(ctx) ? 'rgba(200, 200, 200, 1)' : borderColor,
+                            borderDash: ctx => isGapTooBig(ctx) ? [6, 6] : [0, 0],
+                            borderWidth: ctx => isGapTooBig(ctx) ? 1 : 2
+                        }
                     }]
                 },
-            //     options: {
-            //         responsive: true,
-            //         scales: {
-            //             x: {
-            //                 type: 'time',
-            //                 time: {
-            //                     parser: 'YYYY-MM-DD HH:mm:ss',
-            //                     tooltipFormat: 'lll',
-            //                     unit: 'hour',
-            //                     displayFormats: {
-            //                         hour: 'MMM D, hA'
-            //                     }
-            //                 },
-            //                 title: {
-            //                     display: true,
-            //                     text: 'Time'
-            //                 }
-            //             },
-            //             y: {
-            //                 title: {
-            //                     display: true,
-            //                     text: unit
-            //                 }
-            //             }
-            //         }
-            //     }
+                options: {
+                    // spanGaps: 1000 * 60 * 60 * 3, // 3hours
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                parser: 'yyyy-MM-dd HH:mm:ss',
+                                tooltipFormat: 'yyyy-MM-dd HH:mm:ss',
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'MMM d, HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: unit
+                            }
+                        }
+                    }
+                }
             }));
         }
         
