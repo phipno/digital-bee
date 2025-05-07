@@ -24,8 +24,8 @@ load_dotenv()
 def get_db_connection():
     try:
         return psycopg2.connect(
-            # host=os.getenv('DB_HOST', 'localhost'),
-            host=os.getenv('localhost'),
+            host=os.getenv('DB_HOST'),
+            # host=os.getenv('localhost'),
             database=os.getenv('DB_NAME'),
             user=os.getenv('DB_USER'),
             password=os.getenv('DB_PASSWORD'),
@@ -93,7 +93,7 @@ def get_sensors():
     return jsonify(sensor_list)
 
 @app.route('/api/sensor_data/<sensor_id>/<beehive_id>/<unit>/<hours>')
-def get_sensor_dat(sensor_id, beehive_id, unit, hours):
+def get_sensor_data(sensor_id, beehive_id, unit, hours):
     conn = get_db_connection()
     cursor = conn.cursor()
     
