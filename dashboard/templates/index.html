@@ -62,26 +62,24 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             height: 75vh;
-            overflow-y: auto;
         }
-        .bee-sensor-charts {
+        .bee-chart-container {
             display: flex;
-            height:70%;
+            height:50%;
+            width: 100%;
+            overflow: auto;
+        }
+        .weather-chart-container {
+            display: flex;
+            height: 50%;
+            overflow: auto;
             width: 100%;
         }
-        .weather-sensor-chart {
-            display: flex;
-            height: 30%;
-            width: 100%;
+        .beeChart {
+            max-width: 50%;
         }
-        .sensorChart {
-            flex-grow: 1;
-            flex-basis: 0; /* Allow charts to grow/shrink */
-            box-sizing: border-box; /* Prevents padding and border from affecting width */
-            text-align: center;
-            padding: 10px;
-            margin: 5px; /* Optional: space between the charts */
-            border: 1px solid #ccc; /* Optional: for better visibility */
+        .weatherChart {
+            max-width: 33%;
         }
         .main-content {
             max-width: calc(100vw - 300px);
@@ -138,14 +136,14 @@
             </div>
             
             <div class="chart-container">
-                <div class="bee-sensor-charts">
+                <div class="bee-chart-container">
                     <!-- <canvas id="sensorChart"></canvas>
                     <canvas id="sensorChart"></canvas>
                     <canvas id="sensorChart"></canvas>
                     <canvas id="sensorChart"></canvas>
                     <canvas id="sensorChart"></canvas> -->
                 </div>
-                <div class="weather-sensor-chart">
+                <div class="weather-chart-container">
                     <!-- <canvas id="weatherSensorChart"></canvas> -->
                 </div>
             </div>
@@ -192,9 +190,6 @@
         // Select a beehive and load its sensors
         function selectBeehive(event, msg, beehiveId) {
             currentBeehiveId = beehiveId;
-            console.log("Event is: ", event)
-            console.log("MSG is: ", msg)
-            console.log("Beehive_id: ", beehiveId)
             
             // Update UI
             document.querySelectorAll('.beehive-item').forEach(item => {
@@ -254,14 +249,15 @@
                     .then(data => {
                         const canva = document.createElement('canvas');
                         const ctx = canva.getContext('2d')
-                        canva.classList.add('sensorChart');
                         if (sensorName ===  "LoRa-2CF7F1C0613005BC") {
-                            const container = document.getElementsByClassName('weather-sensor-chart')[0];
+                            canva.classList.add('weatherChart');
+                            const container = document.getElementsByClassName('weather-chart-container')[0];
                             container.insertBefore(canva, container.firstChild);
                             const waether_station = true;
                             updateChart(ctx, data, sensorName, unit, waether_station);
                         } else {
-                            const container = document.getElementsByClassName('bee-sensor-charts')[0];
+                            canva.classList.add('beeChart');
+                            const container = document.getElementsByClassName('bee-chart-container')[0];
                             container.insertBefore(canva, container.firstChild); 
                             updateChart(ctx, data, sensorName, unit);
                         }
@@ -275,8 +271,8 @@
             const sensorSelect = document.getElementById('sensorSelect');
             let selectedOption = sensorSelect.value
             
-            const s = document.getElementsByClassName('bee-sensor-charts')[0];
-            const w = document.getElementsByClassName('weather-sensor-chart')[0];
+            const s = document.getElementsByClassName('bee-chart-container')[0];
+            const w = document.getElementsByClassName('weather-chart-container')[0];
             if (s)
                 s.innerHTML = '';
             if (w)
@@ -302,7 +298,7 @@
                         const canva = document.createElement('canvas');
                         const ctx = canva.getContext('2d')
                         canva.classList.add('sensorChart');
-                        const container = document.getElementsByClassName('bee-sensor-charts')[0];
+                        const container = document.getElementsByClassName('bee-chart-container')[0];
                         container.insertBefore(canva, container.firstChild);
                         updateChart(ctx, data, sensorName, unit);
                     });
@@ -329,15 +325,23 @@
             // const ctx = document.getElementById('sensorChart').getContext('2d');
             
             // Prepare data for Chart.js
-            console.log(data)
             const labels = data.map(item => item.timestamp);
             const values = data.map(item => item.value);
-
    
             // Create new chart
             const borderColor = waether_station ? '#0055FF' : '#ff9800';
             const backgroundColor = waether_station ? 'rgba(0, 152, 255, 0.1)' : 'rgba(255, 152, 0, 0.1)';
 
+            const pointRadius = data.length > 100 ? 0.01 : 1;
+            const pointHoverRadius = data.length > 100 ? 0 : 1;
+
+            // Set decimation settings based on data length
+            const enableDecimation = data.length > 50;
+            // const decimation = {
+            //     enabled: enableDecimation,
+            //     algorithm: enableDecimation ? 'lttb' : 'min-max',
+            //     samples: enableDecimation ? 50 : undefined
+            // };
 
             sensorCharts.push(new Chart(ctx, {
                 type: 'line',
@@ -350,6 +354,7 @@
                         backgroundColor: backgroundColor,
                         borderWidth: 2,
                         fill: true,
+                        pointRadius: pointRadius,
                         segment: {
                             borderColor: ctx => isGapTooBig(ctx) ? 'rgba(200, 200, 200, 1)' : borderColor,
                             borderDash: ctx => isGapTooBig(ctx) ? [6, 6] : [0, 0],
@@ -359,7 +364,11 @@
                 },
                 options: {
                     // spanGaps: 1000 * 60 * 60 * 3, // 3hours
+                    // plugins: {
+                    //   decimation: decimation,
+                    // },
                     responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
                             type: 'time',
@@ -385,6 +394,11 @@
                     }
                 }
             }));
+            if (data.length > 200) {
+                sensorCharts[sensorCharts.length - 1].options.plugins.decimation.algorithm = 'lttb';
+                sensorCharts[sensorCharts.length - 1].options.plugins.decimation.enabled = true;
+                sensorCharts[sensorCharts.length - 1].options.plugins.decimation.samples = 500;
+            }
         }
         
         // Listen for sensor selection changes
