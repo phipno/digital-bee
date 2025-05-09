@@ -34,7 +34,6 @@
         .dashboard {
             display: flex;
             gap: 20px;
-            max-height: 88vh;
         }
         .beehive-list {
             background: white;
@@ -44,9 +43,8 @@
             width: 250px; /* Fixed width when expanded */
             overflow-y: auto;
             transition: width 0.3s ease;
-        }
+        }        
         .beehive-list.collapsed {
-            width: 100%;
             overflow: hidden;
         }
         .beehive-list.collapsed .list-content {
@@ -93,12 +91,6 @@
             overflow: auto;
             width: 100%;
         }
-        .beeChart {
-            max-width: 50%;
-        }
-        .weatherChart {
-            max-width: 33%;
-        }
         .main-content {
             height: 100%;
             flex-grow: 1;
@@ -132,6 +124,15 @@
             .main-content {
                 max-width: calc(100vw - 300px);
             }
+            .dashboard {
+                max-height: 88vh;
+            }
+            .beeChart {
+                max-width: 50%;
+            }
+            .weatherChart {
+                max-width: 33%;
+            }
         }
         @media (orientation: portrait) {
             @media (max-width: 768px) {
@@ -149,11 +150,13 @@
             
                 .beehive-list {
                     width: 100%;
-                    height: auto;
+                }
+                .beehive-list.collapsed {
+                    width: 100%;
                 }
             
                 .main-content {
-                    width: 100%;
+                    height: auto;
                 }
             
                 .chart-container {
@@ -164,12 +167,14 @@
                 .bee-chart-container,
                 .weather-chart-container {
                     flex-direction: column;
-                    align-items: center;
+                    width: 100%;
+                    height: auto;
                 }
-            
                 .beeChart,
-                .weatherChart {
-                    max-width: 100% !important;
+                .weatherChart,
+                .sensorChart {
+                    max-height: 33vh;
+                    min-height: 33vh;
                 }
             }
         }
@@ -207,12 +212,12 @@
             </div>
             
             <div class="chart-container">
-                <div class="bee-chart-container">
+                <!-- <div class="bee-chart-container"> -->
                     <!-- Charts will be loaded here -->
-                </div>
-                <div class="weather-chart-container">
+                <!-- </div> -->
+                <!-- <div class="weather-chart-container"> -->
                     <!-- Weather charts will be loaded here -->
-                </div>
+                <!-- </div> -->
             </div>
         </div>
     </div>
@@ -308,6 +313,12 @@
         }
         
         function createDashboardView(hours, sensorSelect) {
+            const beeChartContainer = document.createElement("div")
+            beeChartContainer.classList.add('bee-chart-container')
+            const weatherChartContainer = document.createElement("div")
+            weatherChartContainer.classList.add('weather-chart-container')
+            const chartContainer = document.getElementsByClassName("chart-container")[0]
+            chartContainer.append(beeChartContainer, weatherChartContainer);
             for (option of sensorSelect.children) {
                 if (option.value == 'Dashboard view')
                     continue;
@@ -343,12 +354,12 @@
             const sensorSelect = document.getElementById('sensorSelect');
             let selectedOption = sensorSelect.value
             
-            const s = document.getElementsByClassName('bee-chart-container')[0];
-            const w = document.getElementsByClassName('weather-chart-container')[0];
+            const s = document.getElementsByClassName('chart-container')[0];
+            // const w = document.getElementsByClassName('weather-chart-container')[0];
             if (s)
                 s.innerHTML = '';
-            if (w)
-                w.innerHTML = '';
+            // if (w)
+            //     w.innerHTML = '';
             sensorCharts.forEach(chart => {
                 if (chart !== null) {
                     chart.destroy(); 
@@ -370,7 +381,7 @@
                         const canva = document.createElement('canvas');
                         const ctx = canva.getContext('2d')
                         canva.classList.add('sensorChart');
-                        const container = document.getElementsByClassName('bee-chart-container')[0];
+                        const container = document.getElementsByClassName('chart-container')[0];
                         container.insertBefore(canva, container.firstChild);
                         updateChart(ctx, data, sensorName, unit);
                     });
