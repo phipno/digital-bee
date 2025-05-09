@@ -1,0 +1,91 @@
+{'entities': [
+    {'entityId': {'entityType': 'DEVICE', 'id': 'cb45a700-fa97-11ef-9d11-f54d6a2753bf'
+      }, 'ENTITY_FIELD': {'name': 'LoRa-2CF7F1C0613005BC', 'type': 'LoRaWAN SenseCAP-S2120'
+      }, 'SERVER_ATTRIBUTE': {'latitude': {'ts': 0, 'value': ''
+        }, 'location': {'ts': 1745501481896, 'value': '42'
+        }, 'devName': {'ts': 0, 'value': ''
+        }, 'longitude': {'ts': 0, 'value': ''
+        }
+      }, 'TIME_SERIES': {'lightIntensity': {'ts': 1745501479348, 'value': '39823'
+        }, 'rainGauge': {'ts': 1745501479348, 'value': '0'
+        }, 'relativeHumidity': {'ts': 1745501479348, 'value': '59'
+        }, 'temperature': {'ts': 1745501479348, 'value': '15.1'
+        }, 'pressure': {'ts': 1745501479348, 'value': '99820'
+        }, 'windDirection': {'ts': 1745501479348, 'value': '281'
+        }, 'uvIndex': {'ts': 1745501479348, 'value': '3.9'
+        }, 'windSpeed': {'ts': 1745501479348, 'value': '0.7'
+        }
+      }
+    }
+  ], 'totalPages': 1, 'totalElements': 1, 'hasNext': False
+}
+digital_bee_hive_42_dragino-s31lb
+{'entities': [
+    {'entityId': {'entityType': 'DEVICE', 'id': 'f99dddb0-ffde-11ef-9545-f1c19ab288c3'
+      }, 'ENTITY_FIELD': {'name': 'LoRa-A840411F645AE815', 'type': 'LoRaWAN Dragino-S31-LB'
+      }, 'SERVER_ATTRIBUTE': {'latitude': {'ts': 0, 'value': ''
+        }, 'location': {'ts': 1745500967744, 'value': '42'
+        }, 'devName': {'ts': 0, 'value': ''
+        }, 'longitude': {'ts': 0, 'value': ''
+        }
+      }, 'TIME_SERIES': {'temperature': {'ts': 1745500967406, 'value': '33.9'
+        }, 'relativeHumidity': {'ts': 1745500967406, 'value': '60'
+        }
+      }
+    },
+    {'entityId': {'entityType': 'DEVICE', 'id': 'a4d4afc0-6eb6-11ef-b667-951a94d6009e'
+      }, 'ENTITY_FIELD': {'name': 'LoRa-A8404138A188669C', 'type': 'LoRaWAN Dragino-S31-LB'
+      }, 'SERVER_ATTRIBUTE': {'latitude': {'ts': 0, 'value': ''
+        }, 'location': {'ts': 1745500772052, 'value': '42'
+        }, 'devName': {'ts': 0, 'value': ''
+        }, 'longitude': {'ts': 0, 'value': ''
+        }
+      }, 'TIME_SERIES': {'temperature': {'ts': 1745500771695, 'value': '34.4'
+        }, 'relativeHumidity': {'ts': 1745500771695, 'value': '60.7'
+        }
+      }
+    },
+    {'entityId': {'entityType': 'DEVICE', 'id': 'a865a130-ffde-11ef-9545-f1c19ab288c3'
+      }, 'ENTITY_FIELD': {'name': 'LoRa-A84041CC625AE81E', 'type': 'LoRaWAN Dragino-S31-LB'
+      }, 'SERVER_ATTRIBUTE': {'latitude': {'ts': 0, 'value': ''
+        }, 'location': {'ts': 1745500750499, 'value': '42'
+        }, 'devName': {'ts': 0, 'value': ''
+        }, 'longitude': {'ts': 0, 'value': ''
+        }
+      }, 'TIME_SERIES': {'temperature': {'ts': 1745500750137, 'value': '34.4'
+        }, 'relativeHumidity': {'ts': 1745500750137, 'value': '58.5'
+        }
+      }
+    }
+  ], 'totalPages': 1, 'totalElements': 3, 'hasNext': False
+}
+digital_bee_hive_42_dragino-d23-lb
+{'entities': [
+    {'entityId': {'entityType': 'DEVICE', 'id': '39182140-ffde-11ef-9545-f1c19ab288c3'
+      }, 'ENTITY_FIELD': {'name': 'LoRa-A84041892E5A7A68', 'type': 'LoRaWAN Dragino-D23-LB'
+      }, 'SERVER_ATTRIBUTE': {'latitude': {'ts': 0, 'value': ''
+        }, 'location': {'ts': 1745501307775, 'value': '42'
+        }, 'devName': {'ts': 0, 'value': ''
+        }, 'longitude': {'ts': 0, 'value': ''
+        }
+      }, 'TIME_SERIES': {'tempC3': {'ts': 1745501307431, 'value': '23'
+        }, 'tempC1': {'ts': 1745501307431, 'value': '24.7'
+        }, 'tempC2': {'ts': 1745501307431, 'value': '28.6'
+        }
+      }
+    },
+    {'entityId': {'entityType': 'DEVICE', 'id': 'efa9b480-8548-11ee-b88e-89581e0193df'
+      }, 'ENTITY_FIELD': {'name': 'LoRa-A840419521864618', 'type': 'LoRaWAN Dragino-D23-LB'
+      }, 'SERVER_ATTRIBUTE': {'latitude': {'ts': 0, 'value': ''
+        }, 'location': {'ts': 1745501348235, 'value': '42'
+        }, 'devName': {'ts': 0, 'value': ''
+        }, 'longitude': {'ts': 0, 'value': ''
+        }
+      }, 'TIME_SERIES': {'tempC3': {'ts': 1745501347921, 'value': '25.1'
+        }, 'tempC1': {'ts': 1745501347921, 'value': '25.3'
+        }, 'tempC2': {'ts': 1745501347921, 'value': '26.8'
+        }
+      }
+    }
+  ], 'totalPages': 1, 'totalElements': 2, 'hasNext': False
+}
