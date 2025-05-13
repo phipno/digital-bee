@@ -34,16 +34,32 @@
         .dashboard {
             display: flex;
             gap: 20px;
-            max-height: 88vh;
         }
         .beehive-list {
             background: white;
             border-radius: 8px;
-            padding: 1.5vh;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             height: 100%;
-            width: 20%;
+            width: 250px; /* Fixed width when expanded */
             overflow-y: auto;
+            transition: width 0.3s ease;
+        }        
+        .beehive-list.collapsed {
+            overflow: hidden;
+        }
+        .beehive-list.collapsed .list-content {
+            display: none;
+        }
+        .beehive-list.collapsed .toggle-btn {
+            transform: rotate(180deg);
+        }
+        .toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            color: #ff9800;
+            font-size: 1.2em;
         }
         .beehive-item {
             padding: 10px;
@@ -75,15 +91,9 @@
             overflow: auto;
             width: 100%;
         }
-        .beeChart {
-            max-width: 50%;
-        }
-        .weatherChart {
-            max-width: 33%;
-        }
         .main-content {
-            max-width: calc(100vw - 300px);
             height: 100%;
+            flex-grow: 1;
         }
         .controls {
             display: flex;
@@ -106,6 +116,68 @@
             border-radius: 4px;
             border: 1px solid #ddd;
         }
+        .toggle-btn-container {
+            display: flex;
+            flex-direction: no-wrap;
+        }
+        @media (orientation: landscape) {
+            .main-content {
+                max-width: calc(100vw - 300px);
+            }
+            .dashboard {
+                max-height: 88vh;
+            }
+            .beeChart {
+                max-width: 50%;
+            }
+            .weatherChart {
+                max-width: 33%;
+            }
+        }
+        @media (orientation: portrait) {
+            @media (max-width: 768px) {
+                .controls {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .time-controls {
+                    display: flex;
+                    flex-direction: row;
+                }
+                .dashboard {
+                    flex-direction: column;
+                }
+            
+                .beehive-list {
+                    width: 100%;
+                }
+                .beehive-list.collapsed {
+                    width: 100%;
+                }
+            
+                .main-content {
+                    height: auto;
+                }
+            
+                .chart-container {
+                    max-width: 100%;
+                    height: auto;
+                }
+            
+                .bee-chart-container,
+                .weather-chart-container {
+                    flex-direction: column;
+                    width: 100%;
+                    height: auto;
+                }
+                .beeChart,
+                .weatherChart,
+                .sensorChart {
+                    max-height: 33vh;
+                    min-height: 33vh;
+                }
+            }
+        }
     </style>
 </head>
 <body>
@@ -115,13 +187,17 @@
     
     <div class="dashboard">
         <div class="beehive-list" id="beehiveList">
-            <h2>Beehives</h2>
-            <!-- Beehives will be loaded here -->
+            <div class="toggle-btn-container">
+                <button class="toggle-btn" onclick="toggleBeehiveList()">◀ </button>
+                <h2>Beehives</h2>
+            </div>
+            <div class="list-content">
+                <!-- Beehives will be loaded here -->
+            </div>
         </div>
         
-        <div class="main-content">
+        <div class="main-content" id="mainContent">
             <div class="controls">
-
                 <div class="time-controls">
                     <button onclick="loadData(1)">Last Hour</button>
                     <button onclick="loadData(24)">Last 24 Hours</button>
@@ -136,16 +212,12 @@
             </div>
             
             <div class="chart-container">
-                <div class="bee-chart-container">
-                    <!-- <canvas id="sensorChart"></canvas>
-                    <canvas id="sensorChart"></canvas>
-                    <canvas id="sensorChart"></canvas>
-                    <canvas id="sensorChart"></canvas>
-                    <canvas id="sensorChart"></canvas> -->
-                </div>
-                <div class="weather-chart-container">
-                    <!-- <canvas id="weatherSensorChart"></canvas> -->
-                </div>
+                <!-- <div class="bee-chart-container"> -->
+                    <!-- Charts will be loaded here -->
+                <!-- </div> -->
+                <!-- <div class="weather-chart-container"> -->
+                    <!-- Weather charts will be loaded here -->
+                <!-- </div> -->
             </div>
         </div>
     </div>
@@ -161,13 +233,24 @@
             loadBeehives();
         });
         
+        // Toggle beehive list visibility
+        function toggleBeehiveList() {
+            const beehiveList = document.getElementById('beehiveList');
+            beehiveList.classList.toggle('collapsed');
+            // const mainContent = document.getElementById('mainContent');
+            // if (beehiveList.classList.contains('collapsed')) {
+            //     mainContent.style.marginLeft = '-200px';
+            // } else {
+            //    mainContent.style.marginLeft = '0';
+            // }
+        }
+        
         // Load beehives from API
         function loadBeehives() {
             fetch('/api/beehives')
                 .then(response => response.json())
                 .then(data => {
-                    const beehiveList = document.getElementById('beehiveList');
-                    beehiveList.innerHTML = '<h2>Beehives</h2>';
+                    const listContent = document.querySelector('.beehive-list .list-content');
                     
                     data.forEach(beehive => {
                         const div = document.createElement('div');
@@ -177,12 +260,7 @@
                             <p>Installed: ${beehive.installation_date}</p>
                         `;
                         div.addEventListener('click', event => selectBeehive(event, "msg", beehive.id));
-                        beehiveList.appendChild(div);
-                        
-                        // Select first beehive by default
-                        // if (!currentBeehiveId) {
-                        //     selectBeehive("default",beehive.id);
-                        // }
+                        listContent.appendChild(div);
                     });
                 });
         }
@@ -210,7 +288,6 @@
                     const select = document.getElementById('sensorSelect');
                     select.innerHTML = '';
                     
-                    
                     sensors.forEach(sensor => {
                         // Split units (since they're stored as comma-separated string)
                         const units = sensor.units.split(',');
@@ -236,6 +313,12 @@
         }
         
         function createDashboardView(hours, sensorSelect) {
+            const beeChartContainer = document.createElement("div")
+            beeChartContainer.classList.add('bee-chart-container')
+            const weatherChartContainer = document.createElement("div")
+            weatherChartContainer.classList.add('weather-chart-container')
+            const chartContainer = document.getElementsByClassName("chart-container")[0]
+            chartContainer.append(beeChartContainer, weatherChartContainer);
             for (option of sensorSelect.children) {
                 if (option.value == 'Dashboard view')
                     continue;
@@ -271,12 +354,12 @@
             const sensorSelect = document.getElementById('sensorSelect');
             let selectedOption = sensorSelect.value
             
-            const s = document.getElementsByClassName('bee-chart-container')[0];
-            const w = document.getElementsByClassName('weather-chart-container')[0];
+            const s = document.getElementsByClassName('chart-container')[0];
+            // const w = document.getElementsByClassName('weather-chart-container')[0];
             if (s)
                 s.innerHTML = '';
-            if (w)
-                w.innerHTML = '';
+            // if (w)
+            //     w.innerHTML = '';
             sensorCharts.forEach(chart => {
                 if (chart !== null) {
                     chart.destroy(); 
@@ -298,7 +381,7 @@
                         const canva = document.createElement('canvas');
                         const ctx = canva.getContext('2d')
                         canva.classList.add('sensorChart');
-                        const container = document.getElementsByClassName('bee-chart-container')[0];
+                        const container = document.getElementsByClassName('chart-container')[0];
                         container.insertBefore(canva, container.firstChild);
                         updateChart(ctx, data, sensorName, unit);
                     });
@@ -322,8 +405,6 @@
 
         // Update the chart with new data
         function updateChart(ctx, data, sensorName, unit, waether_station = false) {
-            // const ctx = document.getElementById('sensorChart').getContext('2d');
-            
             // Prepare data for Chart.js
             const labels = data.map(item => item.timestamp);
             const values = data.map(item => item.value);
@@ -334,14 +415,6 @@
 
             const pointRadius = data.length > 100 ? 0.01 : 1;
             const pointHoverRadius = data.length > 100 ? 0 : 1;
-
-            // Set decimation settings based on data length
-            const enableDecimation = data.length > 50;
-            // const decimation = {
-            //     enabled: enableDecimation,
-            //     algorithm: enableDecimation ? 'lttb' : 'min-max',
-            //     samples: enableDecimation ? 50 : undefined
-            // };
 
             sensorCharts.push(new Chart(ctx, {
                 type: 'line',
@@ -363,10 +436,6 @@
                     }]
                 },
                 options: {
-                    // spanGaps: 1000 * 60 * 60 * 3, // 3hours
-                    // plugins: {
-                    //   decimation: decimation,
-                    // },
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
