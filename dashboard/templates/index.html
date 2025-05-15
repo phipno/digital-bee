@@ -403,13 +403,29 @@
             return Math.abs(nextTime - prevTime) > MAX_GAP;
         }
 
+        // function to convert Sensortimestamp UTC to browser localtime..
+        // function formatDateTime(timestamp) {
+            
+        //     const date = new Date(timestamp);
+        //     const pad = (n) => n.toString().padStart(2, '0');
+
+        //     const year = date.getFullYear();
+        //     const month = pad(date.getMonth() + 1);     // Months are 0-based
+        //     const day = pad(date.getDate());
+
+        //     const hours = pad(date.getHours());
+        //     const minutes = pad(date.getMinutes());
+        //     const seconds = pad(date.getSeconds());
+
+        //     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        // }
+
 
         // Update the chart with new data
         function updateChart(ctx, data, sensorName, unit, waether_station = false) {
             // Prepare data for Chart.js
             
-            //uncomment to use browser specific time conversion
-            // const labels = data.map(item => formatDateTime(item.timestamp));
+            // const labels = data.map(item => formatDateTime(item.timestamp)); //uncomment to use browser specific time conversion
             const labels = data.map(item => item.timestamp);
             const values = data.map(item => item.value);
 
