@@ -6,7 +6,7 @@ RUN apk add build-base libpq libpq-dev
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# COPY . .
 
 EXPOSE 5000
 

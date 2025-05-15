@@ -11,9 +11,10 @@
 from flask import Flask, render_template, jsonify
 import psycopg2
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 import os
 from datetime import datetime, timedelta
-
+import pytz
 
 app = Flask(__name__)
 
@@ -92,6 +93,24 @@ def get_sensors():
     
     return jsonify(sensor_list)
 
+def convertTime(date_input):
+    # If input is string, parse it
+    if isinstance(date_input, str):
+        date_input = date_input.replace(' GMT', '')
+        dt_gmt = datetime.strptime(date_input, "%a, %d %b %Y %H:%M:%S")
+        dt_gmt = dt_gmt.replace(tzinfo=timezone.utc)
+    elif isinstance(date_input, datetime):
+        # Assume it's already timezone-aware or UTC
+        dt_gmt = date_input.replace(tzinfo=timezone.utc)
+    else:
+        raise ValueError("Unsupported type for date_input")
+    # Convert to local timezone
+    local_tz = pytz.timezone("Europe/Berlin")
+    dt_local = dt_gmt.astimezone(local_tz)
+    # Format back to string
+    return dt_local.strftime('%Y-%m-%d %H:%M:%S')
+
+
 @app.route('/api/sensor_data/<sensor_id>/<beehive_id>/<unit>/<hours>')
 def get_sensor_data(sensor_id, beehive_id, unit, hours):
     conn = get_db_connection()
@@ -109,7 +128,8 @@ def get_sensor_data(sensor_id, beehive_id, unit, hours):
         data_list = []
         for row in data:
             data_list.append({
-                'timestamp': row[0].strftime('%Y-%m-%d %H:%M:%S'),
+                
+                'timestamp': convertTime(row[0]),#.strftime('%Y-%m-%d %H:%M:%S'),
                 'value': row[1]
             })
         return jsonify(data_list)
