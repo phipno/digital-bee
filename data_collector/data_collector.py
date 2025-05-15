@@ -36,22 +36,21 @@ class BeehiveDataCollector:
             {"sensor_name": "LoRa-A840419521864618", "beehive_id": 2},
             {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 3},
             {"sensor_name": "LoRa-A8404138A188669C", "beehive_id": 3},
-            {"sensor_name": "LoRa-A8494160C85A7A7B", "beehive_id": 3} 
-
+            {"sensor_name": "LoRa-A8404160C85A7A7B", "beehive_id": 3}
         ]
         self.initialize_beehives()
 
     def initialize_beehives(self):
         """Initialize beehive data if not exists"""
-        if not self.db.get_row_by_value("beehives", "name", "Larry"):
+        if not self.db.get_row_by_value("beehives", "name", "Beehive No.1"):
             self._create_initial_beehives()
 
     def _create_initial_beehives(self):
         """Create initial beehive entries"""
         beehives = [
-            ("Larry", "(49.15182633037482, 9.215298005933729)", "Larry is standing alone, he needs some friends"),
-            ("TamTam", "(49.15184249515977, 9.21529330883642)", "TamTam is the middle Sandwhich child"),
-            ("BonBon", "(49.151846188225065, 9.215281522540364)", "BonBon is the smallest yet most active")
+            ("Beehive No.1", "(49.15182633037482, 9.215298005933729)", "Larry is standing alone, he needs some friends"),
+            ("Beehive No.2", "(49.15184249515977, 9.21529330883642)", "TamTam is the middle Sandwhich child"),
+            ("Beehive No.3", "(49.151846188225065, 9.215281522540364)", "BonBon is the smallest yet most active")
         ]
         
         for name, location, notes in beehives:

@@ -206,6 +206,7 @@
                 
                 <div class="sensor-selector">
                     <select id="sensorSelect">
+                        <option value="Dashboard view">Dashboard view</option>
                         <!-- Sensors will be loaded here -->
                     </select>
                 </div>
@@ -280,10 +281,9 @@
                 const select = document.getElementById(`beehiveId-${beehiveId}`);
                 if (select) select.classList.add('active');
             }
-            
-            // Load sensors for this beehive
+            // Load all sensors of currently selected beehives in currentBeeHiveIds for this beehive
             console.log(currentBeehiveIds)
-            loadSensors(beehiveId);
+            currentBeehiveIds.forEach(beehiveId => loadSensors(beehiveId))            
         }
         
         // Load sensors for selected beehive
@@ -293,7 +293,9 @@
                 .then(data => {
                     const sensors = data.filter(sensor => sensor.beehive_id == beehiveId);
                     const select = document.getElementById('sensorSelect');
-                    select.innerHTML = '';
+                    const dashboardView = select.firstElementChild;
+                    select.replaceChildren(dashboardView);
+
                     
                     sensors.forEach(sensor => {
                         // Split units (since they're stored as comma-separated string)
@@ -306,12 +308,6 @@
                         });
                     });
                     
-                    //creating option for large dashboard
-                    const dashboard_option = document.createElement('option');
-                    dashboard_option.value = `Dashboard view`;
-                    dashboard_option.textContent = `Dashboard view for ${beehiveId}`;
-                    select.appendChild(dashboard_option);
-
                     // Load data for first sensor by default
                     if (sensors.length > 0) {
                         loadData(currentHours);
