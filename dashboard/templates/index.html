@@ -283,9 +283,51 @@
             }
             // Load all sensors of currently selected beehives in currentBeeHiveIds for this beehive
             console.log(currentBeehiveIds)
-            currentBeehiveIds.forEach(beehiveId => loadSensors(beehiveId))            
+            if (currentBeehiveIds.length == 1) {
+                loadSensors(beehiveId);
+            } else {
+                compareSensors();
+            }
         }
         
+        function compareSensors() {
+            let unit_table = []
+            fetch('/api/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data)
+                    //only do once to fill the select options
+                    const sensors = data.filter(sensor => sensor.beehive_id == currentBeehiveIds[0]);
+                    const select = document.getElementById('sensorSelect');
+                    const dashboardView = select.firstElementChild;
+                    select.replaceChildren(dashboardView);
+                    sensors.forEach(sensor => {
+                        if (sensor.name != 'LoRa-2CF7F1C0613005BC') {
+                            const units = sensor.units.split(',');
+                            units.forEach(unit => { unit_table.push(unit) 
+                                const option = document.createElement('option');
+                                option.value = `${unit}`
+                                option.textContent = `${unit}`
+                                select.appendChild(option);
+                            });
+                        }
+                    })
+                    unit_table.forEach(unit => {
+                            let data_table = []
+                            currentBeehiveIds.forEach(bee_id => {
+                                fetch(`/api/sensor_data/${bee_id}/${unit}/${currentHours}`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        data_table.push(data);
+                                    });
+                            });
+                            console.log(data_table)
+
+                        });
+                    });  
+            console.log(unit_table)                
+        }
+
         // Load sensors for selected beehive
         function loadSensors(beehiveId) {
             fetch('/api/sensors')

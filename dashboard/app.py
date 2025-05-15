@@ -107,6 +107,35 @@ def convertTime(date_input):
     return dt_local.strftime('%Y-%m-%d %H:%M:%S')
 
 
+@app.route('/api/sensor_data/<beehive_id>/<unit>/<hours>')
+def get_unit_data(beehive_id, unit, hours):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    time_threshold = datetime.now() - timedelta(hours=int(hours))
+    try:
+        cursor.execute(
+            f"SELECT ts, value FROM data WHERE ts >= %s AND beehive_id = %s AND measurement_unit = %s ORDER BY ts",
+            (time_threshold, beehive_id, unit)
+        )
+        data = cursor.fetchall()
+        
+        # Convert to list of dictionaries
+        data_list = []
+        for row in data:
+            data_list.append({
+                'timestamp': convertTime(row[0]),
+                'value': row[1]
+            })
+        return jsonify(data_list)
+    
+    except psycopg2.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @app.route('/api/sensor_data/<sensor_id>/<beehive_id>/<unit>/<hours>')
 def get_sensor_data(sensor_id, beehive_id, unit, hours):
     conn = get_db_connection()
