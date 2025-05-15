@@ -5,8 +5,15 @@ A data collection and visualization system for bee hive monitoring with weather 
 ![Project Banner](https://spudsmart.com/wp-content/uploads/2017/08/honey-bee-banner.jpg)
 
 ## Installation 🛠️
+Choose between docker setup and self setup
 
-### 1. Environment Setup
+### Docker Setup
+```bash
+#If Docker installed and started
+docker compose up
+```
+
+### Self Setup
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/digital-bee.git
@@ -26,10 +33,11 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r dashboard/requirements.txt
+pip install -r data_collector/equirements.txt
 
 # Start data collection
-python data_collector.py
+python data_collector/data_collector.py
 
 # Start dashboard
-python dashboard.py
+python dashboard/dashboard.py
