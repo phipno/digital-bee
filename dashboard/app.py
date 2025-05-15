@@ -118,7 +118,6 @@ def get_sensor_data(sensor_id, beehive_id, unit, hours):
         # Convert to list of dictionaries
         data_list = []
         for row in data:
-            print(row)
             data_list.append({
                 'timestamp': convertTime(row[0]),
                 'value': row[1]
