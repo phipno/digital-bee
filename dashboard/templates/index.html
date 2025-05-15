@@ -224,7 +224,7 @@
 
     <script>
         // Global variables
-        let currentBeehiveId = null;
+        let currentBeehiveIds = [];
         let currentHours = 24;
         let sensorCharts = [null];
         
@@ -255,6 +255,7 @@
                     data.forEach(beehive => {
                         const div = document.createElement('div');
                         div.className = 'beehive-item';
+                        div.id = `beehiveId-${beehive.id}`
                         div.innerHTML = `
                             <h3>${beehive.name}</h3>
                             <p>Installed: ${beehive.installation_date}</p>
@@ -267,15 +268,21 @@
         
         // Select a beehive and load its sensors
         function selectBeehive(event, msg, beehiveId) {
-            currentBeehiveId = beehiveId;
-            
-            // Update UI
-            document.querySelectorAll('.beehive-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            event.currentTarget.classList.add('active');
+            if (currentBeehiveIds.includes(beehiveId)) {
+                const index = currentBeehiveIds.indexOf(beehiveId);
+                if (index !== -1) {
+                    currentBeehiveIds.splice(index, 1);
+                }
+                const deselect = document.getElementById(`beehiveId-${beehiveId}`);
+                if (deselect) deselect.classList.remove('active');
+            } else {
+                currentBeehiveIds.push(beehiveId);
+                const select = document.getElementById(`beehiveId-${beehiveId}`);
+                if (select) select.classList.add('active');
+            }
             
             // Load sensors for this beehive
+            console.log(currentBeehiveIds)
             loadSensors(beehiveId);
         }
         
