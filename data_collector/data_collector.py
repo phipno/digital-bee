@@ -30,12 +30,14 @@ class BeehiveDataCollector:
         self.sensor_beehive_mapping = [
             {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 1},
             {"sensor_name": "LoRa-A840411F645AE815", "beehive_id": 1},
+            {"sensor_name": "LoRa-A84041892E5A7A68", "beehive_id": 1},
             {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 2},
-            {"sensor_name": "LoRa-A8404138A188669C", "beehive_id": 2},
-            {"sensor_name": "LoRa-A84041892E5A7A68", "beehive_id": 2},
+            {"sensor_name": "LoRa-A84041CC625AE81E", "beehive_id": 2},
+            {"sensor_name": "LoRa-A840419521864618", "beehive_id": 2},
             {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 3},
-            {"sensor_name": "LoRa-A840419521864618", "beehive_id": 3},
-            {"sensor_name": "LoRa-A84041CC625AE81E", "beehive_id": 3}
+            {"sensor_name": "LoRa-A8404138A188669C", "beehive_id": 3},
+            {"sensor_name": "LoRa-A8494160C85A7A7B", "beehive_id": 3} 
+
         ]
         self.initialize_beehives()
 
