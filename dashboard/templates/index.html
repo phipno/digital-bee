@@ -405,13 +405,18 @@
                 }
             
                 if (!selectedOption.includes('|')) {
-                    await loadComparisonData(selectedOption);
+                    await loadComparisonData(selectedOption, elements.chartContainer)
                 } else {
                     await loadSingleSensorData(selectedOption);
                 }
             }
         
-            async function loadComparisonData(unit) {
+            async function loadComparisonData(unit, beeContainer = undefined, weatherContainer = undefined) {
+                // Clear containers
+                if (beeContainer)
+                    beeContainer.innerHTML = '';
+                if (weatherContainer)
+                    weatherContainer.innerHTML = '';
                 const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
                     fetchData(`/sensors/${beehiveId}`)
                 );
@@ -419,27 +424,39 @@
                 const allBeehiveSensors = await Promise.all(sensorPromises);
                 const dataPromises = [];
                 const labels = [];
+                let weatherSensor = null;
             
                 allBeehiveSensors.forEach((sensors, index) => {
                     const beehiveId = state.currentBeehiveIds[index];
-                    const validSensors = sensors.filter(s => 
-                        s.name !== "LoRa-2CF7F1C0613005BC" && 
-                        s.units.split(',').includes(unit)
-                    );
                 
+                    // Filter valid sensors and identify weather station
+                    const validSensors = sensors.filter(s => {
+                        if (s.name === "LoRa-2CF7F1C0613005BC") {
+                            weatherSensor = s;
+                            return false;
+                        }
+                        return s.units.split(',').includes(unit);
+                    });
+                
+                    // Process regular sensors for comparison
                     validSensors.forEach(sensor => {
                         labels.push(`Beehive ${beehiveId} - ${sensor.name}`);
                         dataPromises.push(
                             fetchData(`/sensor_data/${sensor.id}/${beehiveId}/${unit}/${state.currentHours}`)
                         );
                     });
+                
                 });
             
+                // Process comparison charts
                 const allData = await Promise.all(dataPromises);
-                if (!allData.length) return;
-            
-                const canvas = createCanvas('sensorChart');
-                updateComparisonChart(canvas.getContext('2d'), allData, unit, labels);
+                if (allData.length) {
+                    const canvas = createCanvas('beeChart', beeContainer);
+                    updateComparisonChart(canvas.getContext('2d'), allData, unit, labels);
+                }
+                if (weatherSensor) {
+                    return weatherSensor
+                }
             }
         
             async function loadSingleSensorData(selectedOption) {
@@ -458,49 +475,23 @@
                 const beeChartContainer = createChartContainer('bee-chart-container');
                 const weatherChartContainer = createChartContainer('weather-chart-container');
                 elements.chartContainer.append(beeChartContainer, weatherChartContainer);
-            
                 if (isComparisonMode) {
-                    await createComparisonDashboard(beeChartContainer);
+                    await createComparisonDashboard(beeChartContainer, weatherChartContainer);
                 } else {
                     await createStandardDashboard(beeChartContainer, weatherChartContainer);
                 }
             }
-        
-            async function createComparisonDashboard(container) {
-                const unit = elements.sensorSelect.value;
+
+            async function createComparisonDashboard(beeContainer, weatherContainer) {
                 const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
                     fetchData(`/sensors/${beehiveId}`)
                 );
             
-                const allBeehiveSensors = await Promise.all(sensorPromises);
-                const dataPromises = [];
-            
-                allBeehiveSensors.forEach((sensors, index) => {
-                    const beehiveId = state.currentBeehiveIds[index];
-                    const validSensors = sensors.filter(s => 
-                        s.name !== "LoRa-2CF7F1C0613005BC" && 
-                        s.units.split(',').includes(unit)
-                    );
-                
-                    validSensors.forEach(sensor => {
-                        dataPromises.push(
-                            fetchData(`/sensor_data/${sensor.id}/${beehiveId}/${unit}/${state.currentHours}`)
-                                .then(data => ({
-                                    data,
-                                    sensorName: `Beehive ${beehiveId} - ${sensor.name}`,
-                                    unit,
-                                    isWeather: false
-                                }))
-                        );
-                    });
-                });
-            
-                const results = await Promise.all(dataPromises);
-                results.forEach(result => {
-                    if (!result) return;
-                    const canvas = createCanvas('beeChart', container);
-                    updateChart(canvas.getContext('2d'), result.data, result.sensorName, result.unit, result.isWeather);
-                });
+                let promise = undefined;
+                // Get all selected units (skip first option which is "Dashboard view")
+                const compareUnits = Array.from(elements.sensorSelect)
+                    .slice(1) // Skip first option
+                    .map(opt => loadComparisonData(opt.value, beeContainer, weatherContainer)); // Get just the unit value            
             }
         
             async function createStandardDashboard(beeContainer, weatherContainer) {
