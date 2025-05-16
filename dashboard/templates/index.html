@@ -289,44 +289,50 @@
         }
         
         function compareSensors() {
-            let unit_table = []
-            fetch('/api/sensors')
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data)
-                    //only do once to fill the select options
-                    const sensors = data.filter(sensor => sensor.beehive_id == currentBeehiveIds[0]);
-                    const select = document.getElementById('sensorSelect');
-                    const dashboardView = select.firstElementChild;
-                    select.replaceChildren(dashboardView);
-                    sensors.forEach(sensor => {
-                        if (sensor.name != 'LoRa-2CF7F1C0613005BC') {
-                            const units = sensor.units.split(',');
-                            units.forEach(unit => { unit_table.push(unit) 
-                                const option = document.createElement('option');
-                                option.value = `${unit}`
-                                option.textContent = `${unit}`
-                                select.appendChild(option);
-                            });
-                        }
-                    })
-                    unit_table.forEach(unit => {
-                            let data_table = []
-                            currentBeehiveIds.forEach(bee_id => {
-                                fetch(`/api/sensor_data/${bee_id}/${unit}/${currentHours}`)
-                                    .then(response => response.json())
-                                    .then(data => {
-                                        data_table.push(data);
-                                    });
-                            });
-                            console.log(data_table)
+            const select = document.getElementById('sensorSelect');
+            select.innerHTML = '<option value="Dashboard view">Dashboard view</option>';
+            
+            if (currentBeehiveIds.length === 0) return;
+            
+            // Get all sensors from all selected beehives
+            const sensorPromises = currentBeehiveIds.map(beehiveId => 
+                fetch(`/api/sensors?beehive_id=${beehiveId}`).then(r => r.json())
+            );
+            
+            Promise.all(sensorPromises).then(allBeehiveSensors => {
+                // Find common units across all selected beehives
+                const unitCounts = {};
 
+                allBeehiveSensors.forEach((sensors, index) => {
+                    const beehiveId = currentBeehiveIds[index];
+                    sensors.forEach(sensor => {
+                        const units = sensor.units.split(',');
+                        units.forEach(unit => {
+                            if (!unitCounts[unit]) {
+                                unitCounts[unit] = new Set();
+                            }
+                            unitCounts[unit].add(beehiveId);
                         });
-                    });  
-            console.log(unit_table)                
+                    });
+                });
+                console.log(unitCounts);
+                // Add units that exist in all selected beehives to dropdown
+                Object.entries(unitCounts).forEach(([unit, beehiveIds]) => {
+                    if (beehiveIds.size === currentBeehiveIds.length) {
+                        const option = document.createElement('option');
+                        option.value = unit;
+                        option.textContent = `Compare ${unit}`;
+                        select.appendChild(option);
+                    }
+                });
+
+                // Load first common unit by default if available
+                if (select.options.length > 1) {
+                    loadData(currentHours);
+                }
+            });
         }
 
-        // Load sensors for selected beehive
         function loadSensors(beehiveId) {
             fetch('/api/sensors')
                 .then(response => response.json())
@@ -353,6 +359,102 @@
                         loadData(currentHours);
                     }
                 });
+        };
+
+        const sensorPromises = currentBeehiveIds.map(beehiveId => 
+            fetch(`/api/sensors/${beehiveId}`)
+                .then(response => {
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.json();
+                })
+                .catch(error => {
+                    console.error(`Error fetching sensors for beehive ${beehiveId}:`, error);
+                    return []; // Return empty array if request fails
+                })
+        );
+
+        // Load sensors for selected beehive
+        function loadData(hours) {
+            currentHours = hours;
+            const sensorSelect = document.getElementById('sensorSelect');
+            const selectedOption = sensorSelect.value;
+
+            const chartContainer = document.getElementsByClassName('chart-container')[0];
+            chartContainer.innerHTML = '';
+
+            sensorCharts.forEach(chart => {
+                if (chart !== null) {
+                    chart.destroy();
+                }
+            });
+            sensorCharts = [];
+        
+            // if (selectedOption === 'Dashboard view') {
+            //     createDashboardView(hours, sensorSelect);
+            //     return;
+            // }
+
+            const canvas = document.createElement('canvas');
+            canvas.classList.add('sensorChart');
+            chartContainer.appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+
+            if (!selectedOption.includes('|')) {
+                // Comparison mode - selectedOption is the unit to compare
+                const unit = selectedOption;
+            
+                // Fetch all sensors for all selected beehives
+                const sensorPromises = currentBeehiveIds.map(beehiveId => 
+                fetch(`/api/sensors/${beehiveId}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.json();
+                    })
+                    .catch(error => {
+                        console.error(`Error fetching sensors for beehive ${beehiveId}:`, error);
+                        return []; // Return empty array if request fails
+                    })
+                );   
+                Promise.all(sensorPromises).then(allBeehiveSensors => {
+                    const dataPromises = [];
+                    const labels = [];
+                
+                    allBeehiveSensors.forEach((sensors, index) => {
+                        const beehiveId = currentBeehiveIds[index];
+                        const sensor = sensors.find(s => s.units.split(',').includes(unit));
+                    
+                        if (sensor) {
+                            labels.push(`Beehive ${beehiveId}`);
+                            dataPromises.push(
+                                fetch(`/api/sensor_data/${sensor.id}/${beehiveId}/${unit}/${hours}`)
+                                    .then(response => {
+                                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                                        return response.json();
+                                    })
+                                    .catch(error => {
+                                        console.error(`Error fetching data for sensor ${sensor.id}:`, error);
+                                        return []; // Return empty array if request fails
+                                    })
+                            );
+                        }
+                    });
+                
+                    return Promise.all(dataPromises).then(allData => {
+                        updateComparisonChart(ctx, allData, unit, labels);
+                    });
+                }).catch(error => {
+                    console.error('Error in sensor data pipeline:', error);
+                });
+            } else {
+                // Single sensor mode (original functionality)
+                console.log("ASDKLHASLKJDLKAJSDKLA")
+                const [sensor_id, beehive_id, sensorName, unit] = selectedOption.split('|');
+                fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateChart(ctx, data, sensorName, unit);
+                    });
+            }
         }
         
         function createDashboardView(hours, sensorSelect) {
@@ -391,45 +493,45 @@
             }
         }
 
-        // Load sensor data for selected time period
-        function loadData(hours) {
-            currentHours = hours;
-            const sensorSelect = document.getElementById('sensorSelect');
-            let selectedOption = sensorSelect.value
+        // // Load sensor data for selected time period
+        // function loadData(hours) {
+        //     currentHours = hours;
+        //     const sensorSelect = document.getElementById('sensorSelect');
+        //     let selectedOption = sensorSelect.value
             
-            const s = document.getElementsByClassName('chart-container')[0];
-            // const w = document.getElementsByClassName('weather-chart-container')[0];
-            if (s)
-                s.innerHTML = '';
-            // if (w)
-            //     w.innerHTML = '';
-            sensorCharts.forEach(chart => {
-                if (chart !== null) {
-                    chart.destroy(); 
-                }
-            }); 
+        //     const s = document.getElementsByClassName('chart-container')[0];
+        //     // const w = document.getElementsByClassName('weather-chart-container')[0];
+        //     if (s)
+        //         s.innerHTML = '';
+        //     // if (w)
+        //     //     w.innerHTML = '';
+        //     sensorCharts.forEach(chart => {
+        //         if (chart !== null) {
+        //             chart.destroy(); 
+        //         }
+        //     }); 
 
-            if (selectedOption == 'Dashboard view') {
-                createDashboardView(hours, sensorSelect);
-                return;
-            } else {
-                selectedOption = selectedOption.split('|');
-                const beehive_id = selectedOption[1];
-                const sensor_id = selectedOption[0];
-                const sensorName = selectedOption[2];
-                const unit = selectedOption[3];
-                fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const canva = document.createElement('canvas');
-                        const ctx = canva.getContext('2d')
-                        canva.classList.add('sensorChart');
-                        const container = document.getElementsByClassName('chart-container')[0];
-                        container.insertBefore(canva, container.firstChild);
-                        updateChart(ctx, data, sensorName, unit);
-                    });
-            }
-        }
+        //     if (selectedOption == 'Dashboard view') {
+        //         createDashboardView(hours, sensorSelect);
+        //         return;
+        //     } else {
+        //         selectedOption = selectedOption.split('|');
+        //         const beehive_id = selectedOption[1];
+        //         const sensor_id = selectedOption[0];
+        //         const sensorName = selectedOption[2];
+        //         const unit = selectedOption[3];
+        //         fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
+        //             .then(response => response.json())
+        //             .then(data => {
+        //                 const canva = document.createElement('canvas');
+        //                 const ctx = canva.getContext('2d')
+        //                 canva.classList.add('sensorChart');
+        //                 const container = document.getElementsByClassName('chart-container')[0];
+        //                 container.insertBefore(canva, container.firstChild);
+        //                 updateChart(ctx, data, sensorName, unit);
+        //             });
+        //     }
+        // }
         
         function isGapTooBig(context) {
             const MAX_GAP = 1000 * 60 * 60 * 3 //3 hours in ms
@@ -463,6 +565,63 @@
         //     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
         // }
 
+
+
+        // Updated comparison chart function to handle multiple datasets
+        function updateComparisonChart(ctx, allData, unit, labels) {
+            const colors = ['#ff9800', '#4CAF50', '#2196F3', '#9C27B0', '#FF5722', '#607D8B'];
+
+            const datasets = allData.map((data, index) => ({
+                label: `${labels[index]} (${unit})`,
+                data: data.map(item => ({x: item.timestamp, y: item.value})),
+                borderColor: colors[index % colors.length],
+                backgroundColor: hexToRgba(colors[index % colors.length], 0.1),
+                borderWidth: 2,
+                fill: true,
+                pointRadius: data.length > 100 ? 0.5 : 3
+            }));
+
+            // Combine all timestamps and sort them
+            const allTimestamps = [...new Set(
+                allData.flatMap(data => data.map(item => item.timestamp))
+            )].sort();
+
+            sensorCharts.push(new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allTimestamps,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                parser: 'yyyy-MM-dd HH:mm:ss',
+                                tooltipFormat: 'yyyy-MM-dd HH:mm:ss',
+                                unit: 'hour'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: unit
+                            }
+                        }
+                    }
+                }
+            }));
+        }
+
+        // Helper function to convert hex to rgba
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
 
         // Update the chart with new data
         function updateChart(ctx, data, sensorName, unit, waether_station = false) {
