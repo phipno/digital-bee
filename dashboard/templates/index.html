@@ -8,7 +8,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -98,6 +101,12 @@
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .date-range-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
         button {
             background-color: #ff9800;
@@ -115,9 +124,24 @@
             border-radius: 4px;
             border: 1px solid #ddd;
         }
+        .flatpickr-input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            width: 150px;
+        }
         .toggle-btn-container {
             display: flex;
             flex-direction: no-wrap;
+        }
+        .chart-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .chart-actions button {
+            padding: 4px 8px;
+            font-size: 0.8em;
         }
         @media (orientation: landscape) {
             .main-content {
@@ -139,9 +163,10 @@
                 display: flex;
                 flex-direction: column;
             }
-            .time-controls {
+            .date-range-controls {
                 display: flex;
-                flex-direction: row;
+                flex-direction: column;
+                align-items: flex-start;
             }
             .dashboard {
                 flex-direction: column;
@@ -186,7 +211,7 @@
     <div class="dashboard">
         <div class="beehive-list" id="beehiveList">
             <div class="toggle-btn-container">
-                <button class="toggle-btn" onclick="toggleBeehiveList()">◀ </button>
+                <button class="toggle-btn" onclick="Dashboard.toggleBeehiveList()">◀ </button>
                 <h2>Beehives</h2>
             </div>
             <div class="list-content">
@@ -196,21 +221,29 @@
         
         <div class="main-content" id="mainContent">
             <div class="controls">
-                <div class="time-controls">
-                    <button onclick="Dashboard.loadData(1)">Last Hour</button>
-                    <button onclick="Dashboard.loadData(24)">Last 24 Hours</button>
-                    <button onclick="Dashboard.loadData(168)">Last Week</button>
+                <div class="quick-time-buttons">
+                    <button onclick="Dashboard.setHours(24)">1D</button>
+                    <button onclick="Dashboard.setHours(168)">1W</button>
+                    <button onclick="Dashboard.setHours(720)">1M</button>
                 </div>
-                
-                <div class="sensor-selector">
-                    <select id="sensorSelect">
-                        <option value="Dashboard view">Dashboard view</option>
-                        <!-- Sensors will be loaded here -->
-                    </select>
+                <!-- Date range picker -->
+                <div class="date-range-controls">
+                    <input type="text" id="startDate" class="flatpickr-input" placeholder="Start Date">
+                    <span>to</span>
+                    <input type="text" id="endDate" class="flatpickr-input" placeholder="End Date">
                 </div>
+
+                <button onclick="Dashboard.loadData()">Load</button>
+                <!-- <button onclick="Dashboard.resetZoomAll()">Reset Zoom</button> -->
             </div>
-            
-            <div class="chart-container">
+
+            <div class="sensor-selector">
+                <select id="sensorSelect">
+                    <option value="Dashboard view">Dashboard view</option>
+                    <!-- Sensors will be loaded here -->
+                </select>
+            </div>
+            <div class="chart-container" id="chartContainer">
                 <!-- <div class="bee-chart-container"> -->
                     <!-- Charts will be loaded here -->
                 <!-- </div> -->
@@ -245,6 +278,23 @@
                             },
                             title: { display: true, text: 'Time' }
                         }
+                    },
+                    plugins: {
+                        // zoom: {
+                        //     zoom: {
+                        //         wheel: {
+                        //             enabled: true,
+                        //         },
+                        //         pinch: {
+                        //             enabled: true
+                        //         },
+                        //         mode: 'xy',
+                        //     },
+                        //     pan: {
+                        //         enabled: true,
+                        //         mode: 'xy',
+                        //     }
+                        // }
                     }
                 }
             };
@@ -252,27 +302,98 @@
             // State management
             const state = {
                 currentBeehiveIds: [],
-                currentHours: 24,
+                currentStartDate: null,
+                currentEndDate: null,
                 sensorCharts: [],
-                apiBaseUrl: '/api'
+                apiBaseUrl: '/api',
+                datePicker: null
             };
         
             // DOM Elements
             const elements = {
                 beehiveList: document.getElementById('beehiveList'),
                 sensorSelect: document.getElementById('sensorSelect'),
-                chartContainer: document.getElementsByClassName('chart-container')[0]
+                chartContainer: document.getElementById('chartContainer'),
+                startDate: document.getElementById('startDate'),
+                endDate: document.getElementById('endDate')
             };
         
             // Initialize the dashboard
             function init() {
+                initDatePicker();
                 loadBeehives();
                 setupEventListeners();
+                
+                // Set default date range (last 24 hours)
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 1);
+                
+                state.currentStartDate = startDate;
+                state.currentEndDate = endDate;
+                
+                elements.startDate._flatpickr.setDate(startDate);
+                elements.endDate._flatpickr.setDate(endDate);
             }
+        
+            // Initialize date pickers
+            function initDatePicker() {
+                const now = new Date();
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                elements.startDate.flatpickr({
+                    enableTime: true,
+                    dateFormat: "Y-m-d H:i",
+                    defaultDate: yesterday,
+                    onChange: function(selectedDates) {
+                        state.currentStartDate = selectedDates[0];
+                        state.useDateRange = true;
+                    }
+                });
+
+                elements.endDate.flatpickr({
+                    enableTime: true,
+                    dateFormat: "Y-m-d H:i",
+                    defaultDate: now,
+                    onChange: function(selectedDates) {
+                        state.currentEndDate = selectedDates[0];
+                        state.useDateRange = true;
+                    }
+                });
+
+                state.currentStartDate = yesterday;
+                state.currentEndDate = now;
+            }
+
+            function setHours(hours) {
+                const endDate = new Date();
+                const startDate = new Date(endDate);
+                startDate.setHours(startDate.getHours() - hours);
+                
+                // Update the date pickers
+                elements.startDate._flatpickr.setDate(startDate);
+                elements.endDate._flatpickr.setDate(endDate);
+                
+                // Update state
+                state.currentStartDate = startDate;
+                state.currentEndDate = endDate;
+                state.useDateRange = true; // Use date range mode
+                
+                // Load data with the new range
+                loadData();
+            }
+
+            // Calculate hours between two dates
+            function calculateHoursBetweenDates(startDate, endDate) {
+                const diffMs = endDate - startDate;
+                return Math.round(diffMs / (1000 * 60 * 60)); // Convert ms to hours
+            }
+
         
             // Set up event listeners
             function setupEventListeners() {
-                elements.sensorSelect.addEventListener('change', () => loadData(state.currentHours));
+                elements.sensorSelect.addEventListener('change', () => loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)));
             }
         
             // Toggle beehive list visibility
@@ -350,7 +471,7 @@
                 });
             
                 if (sensors.length > 0) {
-                    loadData(state.currentHours);
+                    loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate));
                 }
             }
         
@@ -387,7 +508,7 @@
                 });
             
                 if (elements.sensorSelect.options.length > 1) {
-                    loadData(state.currentHours);
+                    loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate));
                 }
             }
         
@@ -400,7 +521,7 @@
                 const selectedOption = elements.sensorSelect.value;
             
                 if (selectedOption === 'Dashboard view') {
-                    await createDashboardView(state.currentHours);
+                    await createDashboardView();
                     return;
                 }
             
@@ -412,7 +533,6 @@
             }
         
             async function loadComparisonData(unit, container) {
-                // Clear containers
                 if (container)
                     container.innerHTML = '';
                 const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
@@ -423,43 +543,34 @@
                 const dataPromises = [];
                 const labels = [];
             
-                console.log("Beehives selected",allBeehiveSensors)
                 allBeehiveSensors.forEach((sensors, index) => {
                     const beehiveId = state.currentBeehiveIds[index];
                     
-                    // Filter valid sensors and identify weather station
                     const validSensors = sensors.filter(s => {
                         if (s.name === "LoRa-2CF7F1C0613005BC")
                             return false;
                         return s.units.split(',').includes(unit);
                     });
-                    console.log("VALID SENSORS", validSensors)
-                    // Process regular sensors for comparison
+                    
                     validSensors.forEach(sensor => {
-                        console.log(sensor)
                         labels.push(`Beehive ${beehiveId} - ${sensor.name}`);
                         dataPromises.push(
-                            fetchData(`/sensor_data/${sensor.id}/${beehiveId}/${unit}/${state.currentHours}`)
-                        );
+                            fetchData(`/sensor_data/${sensor.id}/${beehiveId}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`))
                     });
-                
                 });
             
-                // Process comparison charts
                 const allData = await Promise.all(dataPromises);
-                console.log(allData)
                 if (allData.length) {
                     const canvas = elements.sensorSelect.value == 'Dashboard view' ? 
                         createCanvas('beeChart', container): 
-                        createCanvas('sensorChart', container); 
-                    console.log(canvas)  
+                        createCanvas('sensorChart', container);  
                     updateComparisonChart(canvas.getContext('2d'), allData, unit, labels);
                 }
             }
         
             async function loadSingleSensorData(selectedOption) {
                 const [sensor_id, beehive_id, sensorName, unit] = selectedOption.split('|');
-                const data = await fetchData(`/sensor_data/${sensor_id}/${beehive_id}/${unit}/${state.currentHours}`);
+                const data = await fetchData(`/sensor_data/${sensor_id}/${beehive_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`);
                 if (!data) return;
             
                 const canvas = createCanvas('sensorChart');
@@ -486,16 +597,14 @@
                 );
             
                 let promise = undefined;
-                // Get all selected units (skip first option which is "Dashboard view")
                 const compareUnits = Array.from(elements.sensorSelect)
-                    .slice(1) // Skip first option
-                    .map(opt => loadComparisonData(opt.value, beeContainer)); // Get just the unit value  
+                    .slice(1)
+                    .map(opt => loadComparisonData(opt.value, beeContainer));  
 
-                //create the Weather Sensor graph
                 const weatherSensor = await fetchData(`/sensors_by_id/1`)
                 const units = weatherSensor[0].units.split(',');
                 for (const unit of units) {
-                    const data = await fetchData(`/sensor_data/1/${unit}/${state.currentHours}`)
+                    const data = await fetchData(`/sensor_data/1/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
                     const canvas = createCanvas('weatherChart', weatherContainer);
                     updateChart(canvas.getContext('2d'), data, weatherSensor[0].name, unit, true);
                 }
@@ -510,7 +619,7 @@
                     const [sensor_id, beehive_id, sensorName, unit] = option.value.split('|');
 
                     promises.push(
-                        fetchData(`/sensor_data/${sensor_id}/${beehive_id}/${unit}/${state.currentHours}`)
+                        fetchData(`/sensor_data/${sensor_id}/${beehive_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
                             .then(data => ({
                                 data,
                                 sensorName,
@@ -647,12 +756,39 @@
                 const b = parseInt(hex.slice(5, 7), 16);
                 return `rgba(${r}, ${g}, ${b}, ${alpha})`;
             }
+            
+            function formatDate(date) {
+                return date.toISOString().replace('T', ' ').split('.')[0];
+            }
+            
+            function formatDateForAPI(date) {
+                return date.toISOString().replace('T', ' ').split('.')[0];
+            }
+
+            // function resetZoom(button) {
+            //     const canvas = button.closest('div').querySelector('canvas');
+            //     const chart = Chart.getChart(canvas);
+            //     if (chart) {
+            //         chart.resetZoom();
+            //     }
+            // }
+            
+            // function resetZoomAll() {
+            //     state.sensorCharts.forEach(chart => {
+            //         if (chart) {
+            //             chart.resetZoom();
+            //         }
+            //     });
+            // }
         
             // Public API
             return {
                 init,
                 toggleBeehiveList,
-                loadData
+                loadData,
+                // resetZoom,
+                // resetZoomAll,
+                setHours
             };
         })();
 
