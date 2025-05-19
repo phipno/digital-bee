@@ -98,7 +98,35 @@ def get_sensors():
     
     return jsonify(sensor_list)
 
-@app.route('/api/sensors/<beehive_id>')
+@app.route('/api/sensors_by_id/<sensor_id>')
+def get_sensors_by_sensor_id(sensor_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT * FROM sensors WHERE sensor_id = %s", (sensor_id,))
+        sensors = cursor.fetchall()
+        
+        # Convert to list of dictionaries
+        sensor_list = []
+        for sensor in sensors:
+            sensor_list.append({
+                'id': sensor[0],
+                'beehive_id': sensor[1],
+                'name': sensor[2],
+                'type': sensor[3],
+                'units': sensor[4],
+                'last_seen': sensor[6].strftime('%Y-%m-%d %H:%M:%S'),
+                'active': sensor[7]
+            })
+        return jsonify(sensor_list)
+    
+    except psycopg2.Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/api/sensors_by_beehive/<beehive_id>')
 def get_sensors_by_beehive(beehive_id):
     conn = get_db_connection()
     cursor = conn.cursor()

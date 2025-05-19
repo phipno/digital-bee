@@ -411,35 +411,32 @@
                 }
             }
         
-            async function loadComparisonData(unit, beeContainer = undefined, weatherContainer = undefined) {
+            async function loadComparisonData(unit, container) {
                 // Clear containers
-                if (beeContainer)
-                    beeContainer.innerHTML = '';
-                if (weatherContainer)
-                    weatherContainer.innerHTML = '';
+                if (container)
+                    container.innerHTML = '';
                 const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
-                    fetchData(`/sensors/${beehiveId}`)
+                    fetchData(`/sensors_by_beehive/${beehiveId}`)
                 );
             
                 const allBeehiveSensors = await Promise.all(sensorPromises);
                 const dataPromises = [];
                 const labels = [];
-                let weatherSensor = null;
             
+                console.log("Beehives selected",allBeehiveSensors)
                 allBeehiveSensors.forEach((sensors, index) => {
                     const beehiveId = state.currentBeehiveIds[index];
-                
+                    
                     // Filter valid sensors and identify weather station
                     const validSensors = sensors.filter(s => {
-                        if (s.name === "LoRa-2CF7F1C0613005BC") {
-                            weatherSensor = s;
+                        if (s.name === "LoRa-2CF7F1C0613005BC")
                             return false;
-                        }
                         return s.units.split(',').includes(unit);
                     });
-                
+                    console.log("VALID SENSORS", validSensors)
                     // Process regular sensors for comparison
                     validSensors.forEach(sensor => {
+                        console.log(sensor)
                         labels.push(`Beehive ${beehiveId} - ${sensor.name}`);
                         dataPromises.push(
                             fetchData(`/sensor_data/${sensor.id}/${beehiveId}/${unit}/${state.currentHours}`)
@@ -450,12 +447,13 @@
             
                 // Process comparison charts
                 const allData = await Promise.all(dataPromises);
+                console.log(allData)
                 if (allData.length) {
-                    const canvas = createCanvas('beeChart', beeContainer);
+                    const canvas = elements.sensorSelect.value == 'Dashboard view' ? 
+                        createCanvas('beeChart', container): 
+                        createCanvas('sensorChart', container); 
+                    console.log(canvas)  
                     updateComparisonChart(canvas.getContext('2d'), allData, unit, labels);
-                }
-                if (weatherSensor) {
-                    return weatherSensor
                 }
             }
         
@@ -484,14 +482,23 @@
 
             async function createComparisonDashboard(beeContainer, weatherContainer) {
                 const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
-                    fetchData(`/sensors/${beehiveId}`)
+                    fetchData(`/sensors_by_beehive/${beehiveId}`)
                 );
             
                 let promise = undefined;
                 // Get all selected units (skip first option which is "Dashboard view")
                 const compareUnits = Array.from(elements.sensorSelect)
                     .slice(1) // Skip first option
-                    .map(opt => loadComparisonData(opt.value, beeContainer, weatherContainer)); // Get just the unit value            
+                    .map(opt => loadComparisonData(opt.value, beeContainer)); // Get just the unit value  
+
+                //create the Weather Sensor graph
+                const weatherSensor = await fetchData(`/sensors_by_id/1`)
+                const units = weatherSensor[0].units.split(',');
+                for (const unit of units) {
+                    const data = await fetchData(`/sensor_data/1/${unit}/${state.currentHours}`)
+                    const canvas = createCanvas('weatherChart', weatherContainer);
+                    updateChart(canvas.getContext('2d'), data, weatherSensor[0].name, unit, true);
+                }
             }
         
             async function createStandardDashboard(beeContainer, weatherContainer) {
