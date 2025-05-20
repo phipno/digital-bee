@@ -348,7 +348,6 @@
                     defaultDate: yesterday,
                     onChange: function(selectedDates) {
                         state.currentStartDate = selectedDates[0];
-                        state.useDateRange = true;
                     }
                 });
 
@@ -358,7 +357,6 @@
                     defaultDate: now,
                     onChange: function(selectedDates) {
                         state.currentEndDate = selectedDates[0];
-                        state.useDateRange = true;
                     }
                 });
 
@@ -378,7 +376,6 @@
                 // Update state
                 state.currentStartDate = startDate;
                 state.currentEndDate = endDate;
-                state.useDateRange = true; // Use date range mode
                 
                 // Load data with the new range
                 loadData();
@@ -555,7 +552,7 @@
                     validSensors.forEach(sensor => {
                         labels.push(`Beehive ${beehiveId} - ${sensor.name}`);
                         dataPromises.push(
-                            fetchData(`/sensor_data/${sensor.id}/${beehiveId}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`))
+                            fetchData(`/sensor_data/${sensor.id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`))
                     });
                 });
             
@@ -570,7 +567,7 @@
         
             async function loadSingleSensorData(selectedOption) {
                 const [sensor_id, beehive_id, sensorName, unit] = selectedOption.split('|');
-                const data = await fetchData(`/sensor_data/${sensor_id}/${beehive_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`);
+                const data = await fetchData(`/sensor_data/${sensor_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`);
                 if (!data) return;
             
                 const canvas = createCanvas('sensorChart');
@@ -619,7 +616,7 @@
                     const [sensor_id, beehive_id, sensorName, unit] = option.value.split('|');
 
                     promises.push(
-                        fetchData(`/sensor_data/${sensor_id}/${beehive_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
+                        fetchData(`/sensor_data/${sensor_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
                             .then(data => ({
                                 data,
                                 sensorName,
