@@ -8,7 +8,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -74,7 +77,6 @@
         .chart-container {
             background: white;
             border-radius: 8px;
-            padding: 1.5vh;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
             height: 75vh;
@@ -99,6 +101,12 @@
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .date-range-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
         button {
             background-color: #ff9800;
@@ -116,9 +124,24 @@
             border-radius: 4px;
             border: 1px solid #ddd;
         }
+        .flatpickr-input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            width: 150px;
+        }
         .toggle-btn-container {
             display: flex;
             flex-direction: no-wrap;
+        }
+        .chart-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .chart-actions button {
+            padding: 4px 8px;
+            font-size: 0.8em;
         }
         @media (orientation: landscape) {
             .main-content {
@@ -134,48 +157,48 @@
                 max-width: 33%;
             }
         }
-        @media (orientation: portrait) {
-            @media (max-width: 768px) {
-                .controls {
-                    display: flex;
-                    flex-direction: column;
-                }
-                .time-controls {
-                    display: flex;
-                    flex-direction: row;
-                }
-                .dashboard {
-                    flex-direction: column;
-                }
-            
-                .beehive-list {
-                    width: 100%;
-                }
-                .beehive-list.collapsed {
-                    width: 100%;
-                }
-            
-                .main-content {
-                    height: auto;
-                }
-            
-                .chart-container {
-                    max-width: 100%;
-                    height: auto;
-                }
-            
-                .bee-chart-container,
-                .weather-chart-container {
-                    flex-direction: column;
-                    width: 100%;
-                    height: auto;
-                }
-                .beeChart,
-                .weatherChart,
-                .sensorChart {
-                    max-height: 33vh;
-                    min-height: 33vh;
-                }
+        @media (max-aspect-ratio: 1.0) and (min-aspect-ratio: 0.6),
+        (orientation: portrait) and (max-width: 768px) {
+            .controls {
+                display: flex;
+                flex-direction: column;
+            }
+            .date-range-controls {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .dashboard {
+                flex-direction: column;
+            }
+        
+            .beehive-list {
+                width: 100%;
+            }
+            .beehive-list.collapsed {
+                width: 100%;
+            }
+        
+            .main-content {
+                height: auto;
+            }
+        
+            .chart-container {
+                max-width: 100%;
+                height: auto;
+            }
+        
+            .bee-chart-container,
+            .weather-chart-container {
+                flex-direction: column;
+                width: 100%;
+                height: auto;
+            }
+            .beeChart,
+            .weatherChart,
+            .sensorChart {
+                max-height: 33vh;
+                min-height: 33vh;
             }
         }
     </style>
@@ -188,7 +211,7 @@
     <div class="dashboard">
         <div class="beehive-list" id="beehiveList">
             <div class="toggle-btn-container">
-                <button class="toggle-btn" onclick="toggleBeehiveList()">◀ </button>
+                <button class="toggle-btn" onclick="Dashboard.toggleBeehiveList()">◀ </button>
                 <h2>Beehives</h2>
             </div>
             <div class="list-content">
@@ -198,20 +221,29 @@
         
         <div class="main-content" id="mainContent">
             <div class="controls">
-                <div class="time-controls">
-                    <button onclick="loadData(1)">Last Hour</button>
-                    <button onclick="loadData(24)">Last 24 Hours</button>
-                    <button onclick="loadData(168)">Last Week</button>
+                <div class="quick-time-buttons">
+                    <button onclick="Dashboard.setHours(24)">1D</button>
+                    <button onclick="Dashboard.setHours(168)">1W</button>
+                    <button onclick="Dashboard.setHours(720)">1M</button>
                 </div>
-                
-                <div class="sensor-selector">
-                    <select id="sensorSelect">
-                        <!-- Sensors will be loaded here -->
-                    </select>
+                <!-- Date range picker -->
+                <div class="date-range-controls">
+                    <input type="text" id="startDate" class="flatpickr-input" placeholder="Start Date">
+                    <span>to</span>
+                    <input type="text" id="endDate" class="flatpickr-input" placeholder="End Date">
                 </div>
+
+                <button onclick="Dashboard.loadData()">Load</button>
+                <!-- <button onclick="Dashboard.resetZoomAll()">Reset Zoom</button> -->
             </div>
-            
-            <div class="chart-container">
+
+            <div class="sensor-selector">
+                <select id="sensorSelect">
+                    <option value="Dashboard view">Dashboard view</option>
+                    <!-- Sensors will be loaded here -->
+                </select>
+            </div>
+            <div class="chart-container" id="chartContainer">
                 <!-- <div class="bee-chart-container"> -->
                     <!-- Charts will be loaded here -->
                 <!-- </div> -->
@@ -223,239 +255,14 @@
     </div>
 
     <script>
-        // Global variables
-        let currentBeehiveId = null;
-        let currentHours = 24;
-        let sensorCharts = [null];
-        
-        // Initialize the dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            loadBeehives();
-        });
-        
-        // Toggle beehive list visibility
-        function toggleBeehiveList() {
-            const beehiveList = document.getElementById('beehiveList');
-            beehiveList.classList.toggle('collapsed');
-            // const mainContent = document.getElementById('mainContent');
-            // if (beehiveList.classList.contains('collapsed')) {
-            //     mainContent.style.marginLeft = '-200px';
-            // } else {
-            //    mainContent.style.marginLeft = '0';
-            // }
-        }
-        
-        // Load beehives from API
-        function loadBeehives() {
-            fetch('/api/beehives')
-                .then(response => response.json())
-                .then(data => {
-                    const listContent = document.querySelector('.beehive-list .list-content');
-                    
-                    data.forEach(beehive => {
-                        const div = document.createElement('div');
-                        div.className = 'beehive-item';
-                        div.innerHTML = `
-                            <h3>${beehive.name}</h3>
-                            <p>Installed: ${beehive.installation_date}</p>
-                        `;
-                        div.addEventListener('click', event => selectBeehive(event, "msg", beehive.id));
-                        listContent.appendChild(div);
-                    });
-                });
-        }
-        
-        // Select a beehive and load its sensors
-        function selectBeehive(event, msg, beehiveId) {
-            currentBeehiveId = beehiveId;
-            
-            // Update UI
-            document.querySelectorAll('.beehive-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            event.currentTarget.classList.add('active');
-            
-            // Load sensors for this beehive
-            loadSensors(beehiveId);
-        }
-        
-        // Load sensors for selected beehive
-        function loadSensors(beehiveId) {
-            fetch('/api/sensors')
-                .then(response => response.json())
-                .then(data => {
-                    const sensors = data.filter(sensor => sensor.beehive_id == beehiveId);
-                    const select = document.getElementById('sensorSelect');
-                    select.innerHTML = '';
-                    
-                    sensors.forEach(sensor => {
-                        // Split units (since they're stored as comma-separated string)
-                        const units = sensor.units.split(',');
-                        units.forEach(unit => {
-                            const option = document.createElement('option');
-                            option.value = `${sensor.id}|${sensor.beehive_id}|${sensor.name}|${unit}`;
-                            option.textContent = `${sensor.id}.${sensor.beehive_id}. ${sensor.name} (${unit})`;
-                            select.appendChild(option);
-                        });
-                    });
-                    
-                    //creating option for large dashboard
-                    const dashboard_option = document.createElement('option');
-                    dashboard_option.value = `Dashboard view`;
-                    dashboard_option.textContent = `Dashboard view for ${beehiveId}`;
-                    select.appendChild(dashboard_option);
-
-                    // Load data for first sensor by default
-                    if (sensors.length > 0) {
-                        loadData(currentHours);
-                    }
-                });
-        }
-        
-        function createDashboardView(hours, sensorSelect) {
-            const beeChartContainer = document.createElement("div")
-            beeChartContainer.classList.add('bee-chart-container')
-            const weatherChartContainer = document.createElement("div")
-            weatherChartContainer.classList.add('weather-chart-container')
-            const chartContainer = document.getElementsByClassName("chart-container")[0]
-            chartContainer.append(beeChartContainer, weatherChartContainer);
-            for (option of sensorSelect.children) {
-                if (option.value == 'Dashboard view')
-                    continue;
-                selectedOption = option.value.split('|');
-                const beehive_id = selectedOption[1];
-                const sensor_id = selectedOption[0];
-                const sensorName = selectedOption[2];
-                const unit = selectedOption[3];
-                fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const canva = document.createElement('canvas');
-                        const ctx = canva.getContext('2d')
-                        if (sensorName ===  "LoRa-2CF7F1C0613005BC") {
-                            canva.classList.add('weatherChart');
-                            const container = document.getElementsByClassName('weather-chart-container')[0];
-                            container.insertBefore(canva, container.firstChild);
-                            const waether_station = true;
-                            updateChart(ctx, data, sensorName, unit, waether_station);
-                        } else {
-                            canva.classList.add('beeChart');
-                            const container = document.getElementsByClassName('bee-chart-container')[0];
-                            container.insertBefore(canva, container.firstChild); 
-                            updateChart(ctx, data, sensorName, unit);
-                        }
-                    });
-            }
-        }
-
-        // Load sensor data for selected time period
-        function loadData(hours) {
-            currentHours = hours;
-            const sensorSelect = document.getElementById('sensorSelect');
-            let selectedOption = sensorSelect.value
-            
-            const s = document.getElementsByClassName('chart-container')[0];
-            // const w = document.getElementsByClassName('weather-chart-container')[0];
-            if (s)
-                s.innerHTML = '';
-            // if (w)
-            //     w.innerHTML = '';
-            sensorCharts.forEach(chart => {
-                if (chart !== null) {
-                    chart.destroy(); 
-                }
-            }); 
-
-            if (selectedOption == 'Dashboard view') {
-                createDashboardView(hours, sensorSelect);
-                return;
-            } else {
-                selectedOption = selectedOption.split('|');
-                const beehive_id = selectedOption[1];
-                const sensor_id = selectedOption[0];
-                const sensorName = selectedOption[2];
-                const unit = selectedOption[3];
-                fetch(`/api/sensor_data/${sensor_id}/${beehive_id}/${unit}/${hours}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const canva = document.createElement('canvas');
-                        const ctx = canva.getContext('2d')
-                        canva.classList.add('sensorChart');
-                        const container = document.getElementsByClassName('chart-container')[0];
-                        container.insertBefore(canva, container.firstChild);
-                        updateChart(ctx, data, sensorName, unit);
-                    });
-            }
-        }
-        
-        function isGapTooBig(context) {
-            const MAX_GAP = 1000 * 60 * 60 * 3 //3 hours in ms
-
-            const prevPoint = context.p0;
-            const nextPoint = context.p1;
-
-            if (!prevPoint || !nextPoint)
-                return true;
-
-            const prevTime = prevPoint.parsed ? new Date(prevPoint.parsed.x) : new Date(prevPoint.x);
-            const nextTime = nextPoint.parsed ? new Date(nextPoint.parsed.x) : new Date(nextPoint.x);
-            
-            return Math.abs(nextTime - prevTime) > MAX_GAP;
-        }
-
-        // function to convert Sensortimestamp UTC to browser localtime..
-        // function formatDateTime(timestamp) {
-            
-        //     const date = new Date(timestamp);
-        //     const pad = (n) => n.toString().padStart(2, '0');
-
-        //     const year = date.getFullYear();
-        //     const month = pad(date.getMonth() + 1);     // Months are 0-based
-        //     const day = pad(date.getDate());
-
-        //     const hours = pad(date.getHours());
-        //     const minutes = pad(date.getMinutes());
-        //     const seconds = pad(date.getSeconds());
-
-        //     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-        // }
-
-
-        // Update the chart with new data
-        function updateChart(ctx, data, sensorName, unit, waether_station = false) {
-            // Prepare data for Chart.js
-            
-            // const labels = data.map(item => formatDateTime(item.timestamp)); //uncomment to use browser specific time conversion
-            const labels = data.map(item => item.timestamp);
-            const values = data.map(item => item.value);
-
-            // Create new chart
-            const borderColor = waether_station ? '#0055FF' : '#ff9800';
-            const backgroundColor = waether_station ? 'rgba(0, 152, 255, 0.1)' : 'rgba(255, 152, 0, 0.1)';
-
-            const pointRadius = data.length > 100 ? 0.01 : 1;
-            const pointHoverRadius = data.length > 100 ? 0 : 1;
-
-            sensorCharts.push(new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: `${sensorName} (${unit})`,
-                        data: values,
-                        borderColor: borderColor,
-                        backgroundColor: backgroundColor,
-                        borderWidth: 2,
-                        fill: true,
-                        pointRadius: pointRadius,
-                        segment: {
-                            borderColor: ctx => isGapTooBig(ctx) ? 'rgba(200, 200, 200, 1)' : borderColor,
-                            borderDash: ctx => isGapTooBig(ctx) ? [6, 6] : [0, 0],
-                            borderWidth: ctx => isGapTooBig(ctx) ? 1 : 2
-                        }
-                    }]
-                },
-                options: {
+        const Dashboard = (() => {
+            // Configuration constants
+            const CONFIG = {
+                MAX_DATA_GAP: 1000 * 60 * 60 * 3, // 3 hours in ms
+                CHART_COLORS: ['#ff9800', '#4CAF50', '#2196F3', '#9C27B0', '#FF5722', '#607D8B'],
+                WEATHER_STATION_COLOR: '#0055FF',
+                BEEHIVE_COLOR: '#ff9800',
+                CHART_OPTIONS: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -469,31 +276,521 @@
                                     hour: 'MMM d, HH:mm'
                                 }
                             },
-                            title: {
-                                display: true,
-                                text: 'Time'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: unit
-                            }
+                            title: { display: true, text: 'Time' }
                         }
+                    },
+                    plugins: {
+                        // zoom: {
+                        //     zoom: {
+                        //         wheel: {
+                        //             enabled: true,
+                        //         },
+                        //         pinch: {
+                        //             enabled: true
+                        //         },
+                        //         mode: 'xy',
+                        //     },
+                        //     pan: {
+                        //         enabled: true,
+                        //         mode: 'xy',
+                        //     }
+                        // }
                     }
                 }
-            }));
-            if (data.length > 200) {
-                sensorCharts[sensorCharts.length - 1].options.plugins.decimation.algorithm = 'lttb';
-                sensorCharts[sensorCharts.length - 1].options.plugins.decimation.enabled = true;
-                sensorCharts[sensorCharts.length - 1].options.plugins.decimation.samples = 500;
-            }
-        }
+            };
         
-        // Listen for sensor selection changes
-        document.getElementById('sensorSelect').addEventListener('change', function() {
-            loadData(currentHours);
-        });
+            // State management
+            const state = {
+                currentBeehiveIds: [],
+                currentStartDate: null,
+                currentEndDate: null,
+                sensorCharts: [],
+                apiBaseUrl: '/api',
+                datePicker: null
+            };
+        
+            // DOM Elements
+            const elements = {
+                beehiveList: document.getElementById('beehiveList'),
+                sensorSelect: document.getElementById('sensorSelect'),
+                chartContainer: document.getElementById('chartContainer'),
+                startDate: document.getElementById('startDate'),
+                endDate: document.getElementById('endDate')
+            };
+        
+            // Initialize the dashboard
+            function init() {
+                initDatePicker();
+                loadBeehives();
+                setupEventListeners();
+                
+                // Set default date range (last 24 hours)
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 1);
+                
+                state.currentStartDate = startDate;
+                state.currentEndDate = endDate;
+                
+                elements.startDate._flatpickr.setDate(startDate);
+                elements.endDate._flatpickr.setDate(endDate);
+            }
+        
+            // Initialize date pickers
+            function initDatePicker() {
+                const now = new Date();
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+
+                elements.startDate.flatpickr({
+                    enableTime: true,
+                    dateFormat: "Y-m-d H:i",
+                    defaultDate: yesterday,
+                    onChange: function(selectedDates) {
+                        state.currentStartDate = selectedDates[0];
+                    }
+                });
+
+                elements.endDate.flatpickr({
+                    enableTime: true,
+                    dateFormat: "Y-m-d H:i",
+                    defaultDate: now,
+                    onChange: function(selectedDates) {
+                        state.currentEndDate = selectedDates[0];
+                    }
+                });
+
+                state.currentStartDate = yesterday;
+                state.currentEndDate = now;
+            }
+
+            function setHours(hours) {
+                const endDate = new Date();
+                const startDate = new Date(endDate);
+                startDate.setHours(startDate.getHours() - hours);
+                
+                // Update the date pickers
+                elements.startDate._flatpickr.setDate(startDate);
+                elements.endDate._flatpickr.setDate(endDate);
+                
+                // Update state
+                state.currentStartDate = startDate;
+                state.currentEndDate = endDate;
+                
+                // Load data with the new range
+                loadData();
+            }
+
+            // Calculate hours between two dates
+            function calculateHoursBetweenDates(startDate, endDate) {
+                const diffMs = endDate - startDate;
+                return Math.round(diffMs / (1000 * 60 * 60)); // Convert ms to hours
+            }
+
+        
+            // Set up event listeners
+            function setupEventListeners() {
+                elements.sensorSelect.addEventListener('change', () => loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)));
+            }
+        
+            // Toggle beehive list visibility
+            function toggleBeehiveList() {
+                elements.beehiveList.classList.toggle('collapsed');
+            }
+        
+            // API Helpers
+            async function fetchData(url) {
+                try {
+                    const response = await fetch(`${state.apiBaseUrl}${url}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.json();
+                } catch (error) {
+                    console.error(`Error fetching data from ${url}:`, error);
+                    return null;
+                }
+            }
+        
+            // Beehive Management
+            async function loadBeehives() {
+                const data = await fetchData('/beehives');
+                if (!data) return;
+            
+                const listContent = document.querySelector('.beehive-list .list-content');
+                listContent.innerHTML = '';
+            
+                data.forEach(beehive => {
+                    const div = document.createElement('div');
+                    div.className = 'beehive-item';
+                    div.id = `beehiveId-${beehive.id}`;
+                    div.innerHTML = `
+                        <h3>${beehive.name}</h3>
+                        <p>Installed: ${beehive.installation_date}</p>
+                    `;
+                    div.addEventListener('click', () => selectBeehive(beehive.id));
+                    listContent.appendChild(div);
+                });
+            }
+        
+            function selectBeehive(beehiveId) {
+                const index = state.currentBeehiveIds.indexOf(beehiveId);
+
+                if (index !== -1) {
+                    state.currentBeehiveIds.splice(index, 1);
+                    document.getElementById(`beehiveId-${beehiveId}`)?.classList.remove('active');
+                } else {
+                    state.currentBeehiveIds.push(beehiveId);
+                    document.getElementById(`beehiveId-${beehiveId}`)?.classList.add('active');
+                }
+            
+                if (state.currentBeehiveIds.length === 1) {
+                    loadSensors(state.currentBeehiveIds[0]);
+                } else {
+                    compareSensors();
+                }
+            }
+        
+            // Sensor Management
+            async function loadSensors(beehiveId) {
+                const data = await fetchData('/sensors');
+                if (!data) return;
+            
+                const sensors = data.filter(sensor => sensor.beehive_id == beehiveId);
+                const dashboardView = elements.sensorSelect.firstElementChild;
+                elements.sensorSelect.replaceChildren(dashboardView);
+            
+                sensors.forEach(sensor => {
+                    sensor.units.split(',').forEach(unit => {
+                        const option = document.createElement('option');
+                        option.value = `${sensor.id}|${sensor.beehive_id}|${sensor.name}|${unit}`;
+                        option.textContent = `${sensor.id}.${sensor.beehive_id}. ${sensor.name} (${unit})`;
+                        elements.sensorSelect.appendChild(option);
+                    });
+                });
+            
+                if (sensors.length > 0) {
+                    loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate));
+                }
+            }
+        
+            async function compareSensors() {
+                elements.sensorSelect.innerHTML = '<option value="Dashboard view">Dashboard view</option>';
+                if (state.currentBeehiveIds.length === 0) return;
+            
+                const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
+                    fetchData(`/sensors?beehive_id=${beehiveId}`)
+                );
+            
+                const allBeehiveSensors = await Promise.all(sensorPromises);
+                const unitCounts = {};
+            
+                allBeehiveSensors.forEach((sensors, index) => {
+                    const beehiveId = state.currentBeehiveIds[index];
+                    sensors.forEach(sensor => {
+                        if (sensor.name !== "LoRa-2CF7F1C0613005BC") {
+                            sensor.units.split(',').forEach(unit => {
+                                if (!unitCounts[unit]) unitCounts[unit] = new Set();
+                                unitCounts[unit].add(beehiveId);
+                            });
+                        }
+                    });
+                });
+            
+                Object.entries(unitCounts).forEach(([unit, beehiveIds]) => {
+                    if (beehiveIds.size === state.currentBeehiveIds.length) {
+                        const option = document.createElement('option');
+                        option.value = unit;
+                        option.textContent = `Compare ${unit}`;
+                        elements.sensorSelect.appendChild(option);
+                    }
+                });
+            
+                if (elements.sensorSelect.options.length > 1) {
+                    loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate));
+                }
+            }
+        
+            // Data Loading and Chart Management
+            async function loadData(hours) {
+                state.currentHours = hours;
+                clearCharts();
+                elements.chartContainer.innerHTML = '';
+            
+                const selectedOption = elements.sensorSelect.value;
+            
+                if (selectedOption === 'Dashboard view') {
+                    await createDashboardView();
+                    return;
+                }
+            
+                if (!selectedOption.includes('|')) {
+                    await loadComparisonData(selectedOption, elements.chartContainer)
+                } else {
+                    await loadSingleSensorData(selectedOption);
+                }
+            }
+        
+            async function loadComparisonData(unit, container) {
+                if (container)
+                    container.innerHTML = '';
+                const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
+                    fetchData(`/sensors_by_beehive/${beehiveId}`)
+                );
+            
+                const allBeehiveSensors = await Promise.all(sensorPromises);
+                const dataPromises = [];
+                const labels = [];
+            
+                allBeehiveSensors.forEach((sensors, index) => {
+                    const beehiveId = state.currentBeehiveIds[index];
+                    
+                    const validSensors = sensors.filter(s => {
+                        if (s.name === "LoRa-2CF7F1C0613005BC")
+                            return false;
+                        return s.units.split(',').includes(unit);
+                    });
+                    
+                    validSensors.forEach(sensor => {
+                        labels.push(`Beehive ${beehiveId} - ${sensor.name}`);
+                        dataPromises.push(
+                            fetchData(`/sensor_data/${sensor.id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`))
+                    });
+                });
+            
+                const allData = await Promise.all(dataPromises);
+                if (allData.length) {
+                    const canvas = elements.sensorSelect.value == 'Dashboard view' ? 
+                        createCanvas('beeChart', container): 
+                        createCanvas('sensorChart', container);  
+                    updateComparisonChart(canvas.getContext('2d'), allData, unit, labels);
+                }
+            }
+        
+            async function loadSingleSensorData(selectedOption) {
+                const [sensor_id, beehive_id, sensorName, unit] = selectedOption.split('|');
+                const data = await fetchData(`/sensor_data/${sensor_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`);
+                if (!data) return;
+            
+                const canvas = createCanvas('sensorChart');
+                updateChart(canvas.getContext('2d'), data, sensorName, unit);
+            }
+        
+            async function createDashboardView() {
+                const isComparisonMode = !elements.sensorSelect.value.includes('|') && 
+                                       state.currentBeehiveIds.length > 1;
+            
+                const beeChartContainer = createChartContainer('bee-chart-container');
+                const weatherChartContainer = createChartContainer('weather-chart-container');
+                elements.chartContainer.append(beeChartContainer, weatherChartContainer);
+                if (isComparisonMode) {
+                    await createComparisonDashboard(beeChartContainer, weatherChartContainer);
+                } else {
+                    await createStandardDashboard(beeChartContainer, weatherChartContainer);
+                }
+            }
+
+            async function createComparisonDashboard(beeContainer, weatherContainer) {
+                const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
+                    fetchData(`/sensors_by_beehive/${beehiveId}`)
+                );
+            
+                let promise = undefined;
+                const compareUnits = Array.from(elements.sensorSelect)
+                    .slice(1)
+                    .map(opt => loadComparisonData(opt.value, beeContainer));  
+
+                const weatherSensor = await fetchData(`/sensors_by_id/1`)
+                const units = weatherSensor[0].units.split(',');
+                for (const unit of units) {
+                    const data = await fetchData(`/sensor_data/1/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
+                    const canvas = createCanvas('weatherChart', weatherContainer);
+                    updateChart(canvas.getContext('2d'), data, weatherSensor[0].name, unit, true);
+                }
+            }
+        
+            async function createStandardDashboard(beeContainer, weatherContainer) {
+                const options = Array.from(elements.sensorSelect.children);
+                const promises = [];
+            
+                options.forEach(option => {
+                    if (option.value === 'Dashboard view') return;
+                    const [sensor_id, beehive_id, sensorName, unit] = option.value.split('|');
+
+                    promises.push(
+                        fetchData(`/sensor_data/${sensor_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
+                            .then(data => ({
+                                data,
+                                sensorName,
+                                unit,
+                                isWeather: sensorName === "LoRa-2CF7F1C0613005BC"
+                            }))
+                    );
+                });
+            
+                const results = await Promise.all(promises);
+                results.forEach(result => {
+                    if (!result) return;
+                    const container = result.isWeather ? weatherContainer : beeContainer;
+                    const canvas = createCanvas(result.isWeather ? 'weatherChart' : 'beeChart', container);
+                    updateChart(canvas.getContext('2d'), result.data, result.sensorName, result.unit, result.isWeather);
+                });
+            }
+        
+            // Chart Helpers
+            function createCanvas(className, parent = elements.chartContainer) {
+                const canvas = document.createElement('canvas');
+                canvas.classList.add(className);
+                parent.appendChild(canvas);
+                return canvas;
+            }
+        
+            function createChartContainer(className) {
+                const container = document.createElement('div');
+                container.classList.add(className);
+                return container;
+            }
+        
+            function clearCharts() {
+                state.sensorCharts.forEach(chart => chart?.destroy());
+                state.sensorCharts = [];
+            }
+        
+            function isGapTooBig(context) {
+                const prevPoint = context.p0;
+                const nextPoint = context.p1;
+            
+                if (!prevPoint || !nextPoint) return true;
+            
+                const prevTime = prevPoint.parsed ? new Date(prevPoint.parsed.x) : new Date(prevPoint.x);
+                const nextTime = nextPoint.parsed ? new Date(nextPoint.parsed.x) : new Date(nextPoint.x);
+
+                return Math.abs(nextTime - prevTime) > CONFIG.MAX_DATA_GAP;
+            }
+        
+            function updateChart(ctx, data, sensorName, unit, isWeather = false) {
+                const borderColor = isWeather ? CONFIG.WEATHER_STATION_COLOR : CONFIG.BEEHIVE_COLOR;
+                const backgroundColor = isWeather ? 
+                    hexToRgba(CONFIG.WEATHER_STATION_COLOR, 0.1) : 
+                    hexToRgba(CONFIG.BEEHIVE_COLOR, 0.1);
+            
+                const pointRadius = data.length > 100 ? 0.01 : 1;
+                const pointHoverRadius = data.length > 100 ? 0 : 1;
+            
+                const chartOptions = {
+                    ...CONFIG.CHART_OPTIONS,
+                    scales: {
+                        ...CONFIG.CHART_OPTIONS.scales,
+                        y: { title: { display: true, text: unit } }
+                    }
+                };
+            
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(item => item.timestamp),
+                        datasets: [{
+                            label: `${sensorName} (${unit})`,
+                            data: data.map(item => item.value),
+                            borderColor: borderColor,
+                            backgroundColor: backgroundColor,
+                            borderWidth: 2,
+                            fill: true,
+                            pointRadius: pointRadius,
+                            segment: {
+                                borderColor: ctx => isGapTooBig(ctx) ? 'rgba(200, 200, 200, 1)' : borderColor,
+                                borderDash: ctx => isGapTooBig(ctx) ? [6, 6] : [0, 0],
+                                borderWidth: ctx => isGapTooBig(ctx) ? 1 : 2
+                            }
+                        }]
+                    },
+                    options: chartOptions
+                });
+            
+                if (data.length > 200) {
+                    chart.options.plugins.decimation = {
+                        algorithm: 'lttb',
+                        enabled: true,
+                        samples: 500
+                    };
+                }
+            
+                state.sensorCharts.push(chart);
+            }
+        
+            function updateComparisonChart(ctx, allData, unit, labels) {
+                const datasets = allData.map((data, index) => ({
+                    label: `${labels[index]} (${unit})`,
+                    data: data.map(item => ({x: item.timestamp, y: item.value})),
+                    borderColor: CONFIG.CHART_COLORS[index % CONFIG.CHART_COLORS.length],
+                    backgroundColor: hexToRgba(CONFIG.CHART_COLORS[index % CONFIG.CHART_COLORS.length], 0.1),
+                    borderWidth: 2,
+                    fill: true,
+                    pointRadius: data.length > 100 ? 0.5 : 3
+                }));
+            
+                const allTimestamps = [...new Set(
+                    allData.flatMap(data => data.map(item => item.timestamp))
+                )].sort();
+            
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: allTimestamps, datasets },
+                    options: {
+                        ...CONFIG.CHART_OPTIONS,
+                        scales: {
+                            ...CONFIG.CHART_OPTIONS.scales,
+                            y: { title: { display: true, text: unit } }
+                        }
+                    }
+                });
+            
+                state.sensorCharts.push(chart);
+            }
+        
+            // Utility Functions
+            function hexToRgba(hex, alpha) {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            
+            function formatDate(date) {
+                return date.toISOString().replace('T', ' ').split('.')[0];
+            }
+            
+            function formatDateForAPI(date) {
+                return date.toISOString().replace('T', ' ').split('.')[0];
+            }
+
+            // function resetZoom(button) {
+            //     const canvas = button.closest('div').querySelector('canvas');
+            //     const chart = Chart.getChart(canvas);
+            //     if (chart) {
+            //         chart.resetZoom();
+            //     }
+            // }
+            
+            // function resetZoomAll() {
+            //     state.sensorCharts.forEach(chart => {
+            //         if (chart) {
+            //             chart.resetZoom();
+            //         }
+            //     });
+            // }
+        
+            // Public API
+            return {
+                init,
+                toggleBeehiveList,
+                loadData,
+                // resetZoom,
+                // resetZoomAll,
+                setHours
+            };
+        })();
+
+        // Initialize the dashboard when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => Dashboard.init());
     </script>
 </body>
 </html>
