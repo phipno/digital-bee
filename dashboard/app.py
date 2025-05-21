@@ -26,7 +26,7 @@ def get_db_connection():
     try:
         return psycopg2.connect(
             host=os.getenv('DB_HOST'), # If hosted publicly
-            # host=os.getenv('PG_HOST'), # If hosted locally
+            # host=os.getenv('PG_HOST'), # Good for debugging locally
             # host=os.getenv('localhost'), # If hosted locally
             database=os.getenv('DB_NAME'),
             # database=os.getenv('PG_NAME'),
