@@ -65,8 +65,7 @@
             font-size: 1.2em;
         }
         .beehive-item {
-            padding: 10px;
-            margin-bottom: 10px;
+            padding: 5px  10px 0px 10px;
             border-bottom: 1px solid #eee;
             cursor: pointer;
         }
@@ -165,8 +164,24 @@
             }
             .date-range-controls {
                 display: flex;
-                flex-direction: column;
                 align-items: flex-start;
+                width: 100%;
+                gap: 1%;
+            }
+            .quick-time-buttons {
+                display: flex;
+                justify-content: center;
+                gap: 2%;
+            }
+            .quick-time-btn {
+                width: 33%;
+                padding: inherit;
+            }
+            .load-data-btn {
+                width: 100%;
+            }
+            .flatpickr-input {
+                width: 33%;
             }
             .dashboard {
                 flex-direction: column;
@@ -174,6 +189,15 @@
         
             .beehive-list {
                 width: 100%;
+
+            }
+            .toggle-btn-container h2 {
+                padding: 8px 0px 8px 0px;
+                margin: 0;
+            }
+            .list-content h3,
+            .list-content p{
+                margin: 1vh;
             }
             .beehive-list.collapsed {
                 width: 100%;
@@ -222,18 +246,18 @@
         <div class="main-content" id="mainContent">
             <div class="controls">
                 <div class="quick-time-buttons">
-                    <button onclick="Dashboard.setHours(24)">1D</button>
-                    <button onclick="Dashboard.setHours(168)">1W</button>
-                    <button onclick="Dashboard.setHours(720)">1M</button>
+                    <button class="quick-time-btn" onclick="Dashboard.setHours(24)">1 Day</button>
+                    <button class="quick-time-btn" onclick="Dashboard.setHours(168)">1 Week</button>
+                    <button class="quick-time-btn" onclick="Dashboard.setHours(720)">1 Month</button>
                 </div>
                 <!-- Date range picker -->
                 <div class="date-range-controls">
                     <input type="text" id="startDate" class="flatpickr-input" placeholder="Start Date">
                     <span>to</span>
                     <input type="text" id="endDate" class="flatpickr-input" placeholder="End Date">
+                    <button class="load-data-btn" onclick="Dashboard.loadData()">Load</button>
                 </div>
 
-                <button onclick="Dashboard.loadData()">Load</button>
                 <!-- <button onclick="Dashboard.resetZoomAll()">Reset Zoom</button> -->
             </div>
 
