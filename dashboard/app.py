@@ -8,6 +8,7 @@
 # *                                                  ,,       !              |'          *#
 # *                                                       ,           ,|             |/  *#
 # *----------------8<------------------[ mooooooo ]--------------------------------------*#
+
 from flask import Flask, render_template, jsonify
 import psycopg2
 from dotenv import load_dotenv
@@ -25,17 +26,17 @@ load_dotenv()
 def get_db_connection():
     try:
         return psycopg2.connect(
-            # host=os.getenv('DB_HOST'), # If hosted publicly
-            host=os.getenv('PG_HOST'), # Good for debugging locally
+            host=os.getenv('DB_HOST'), # If hosted publicly
+            # host=os.getenv('PG_HOST'), # Good for debugging locally
             # host=os.getenv('localhost'), # If hosted locally
-            # database=os.getenv('DB_NAME'),
-            database=os.getenv('PG_NAME'),
-            # user=os.getenv('DB_USER'),
-            user=os.getenv('PG_USER'),
-            # password=os.getenv('DB_PASSWORD'),
-            password=os.getenv('PG_PASSWORD'),
-            # port=os.getenv('DB_PORT'),
-            port=os.getenv('PG_PORT'),
+            database=os.getenv('DB_NAME'),
+            # database=os.getenv('PG_NAME'),
+            user=os.getenv('DB_USER'),
+            # user=os.getenv('PG_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            # password=os.getenv('PG_PASSWORD'),
+            port=os.getenv('DB_PORT'),
+            # port=os.getenv('PG_PORT'),
             connect_timeout=3,
             application_name="dashboard"  # Add this identifier
         )
