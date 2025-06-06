@@ -19,14 +19,12 @@ import requests
 from datetime import datetime
 from database_manager import DatabaseManager
 
-
 class BeehiveDataCollector:
     def __init__(self):
         self.db = DatabaseManager()
         self.api_url = os.getenv('BEEHIVE_API_URL')
         self.api_key = os.getenv('BEEHIVE_API_KEY')
         self.sensor_entities = []
-        #Write a funciton for a new sensor addition
         self.sensor_beehive_mapping = [
             {"sensor_name": "LoRa-2CF7F1C0613005BC", "beehive_id": 1},
             {"sensor_name": "LoRa-A840411F645AE815", "beehive_id": 1},
@@ -88,11 +86,8 @@ class BeehiveDataCollector:
 
     def get_beehive_ids_for_sensor(self, sensor_name):
         """Get beehive ID for a given sensor"""
-        beehive_relations = []
-        for mapping in self.sensor_beehive_mapping:
-            if mapping["sensor_name"] == sensor_name:
-                beehive_relations.append(mapping["beehive_id"])
-        return beehive_relations
+        return [mapping["beehive_id"] for mapping in self.sensor_beehive_mapping 
+                if mapping["sensor_name"] == sensor_name]
 
     def collect_sensor_data(self):
         """Main method to collect and store sensor data"""
@@ -124,60 +119,92 @@ class BeehiveDataCollector:
         sensor_name = sensor_info['name']
         sensor_type = sensor_info['type']
         
-        # Prepare measurement data
-        units, timestamps, values = [], [], []
-        for metric, data in time_series.items():
-            units.append(metric)
-            timestamps.append(data['ts'] / 1000)  # Convert to seconds
-            values.append(data['value'])
-        
         # Check if sensor exists or create new
-        sensor_entry = self.db.get_row_by_two_values("sensors", "sensor_name", "beehive_id", sensor_name, beehive_id)
+        sensor_entry = self.db.get_row_by_value("sensors", "sensor_name", sensor_name)
+        
         if not sensor_entry:
             print(f"New sensor found: {sensor_name}")
             sensor_entry = self.create_sensor_entry(
-                beehive_id=beehive_id,
                 name=sensor_name,
                 type=sensor_type,
-                units=",".join(units),
                 installation_date=['2025-04-14', 'YYYY-MM-DD'],
-                last_seen=timestamps[0],
+                last_seen=time.time(),
                 is_active=True
             )
+            sensor_id = sensor_entry[0]
+            
+            # Create beehive-sensor relationship
+            self.create_beehive_sensor_relation(beehive_id, sensor_id)
+        else:
+            sensor_id = sensor_entry[0]
+        
+        # Update last_seen timestamp
+        self.update_sensor_last_seen(sensor_id, time.time())
         
         # Store all measurements
-        for unit, ts, value in zip(units, timestamps, values):
+        for metric, data in time_series.items():
             self.insert_measurement(
-                sensor_id=sensor_entry[0],
+                sensor_id=sensor_id,
                 beehive_id=beehive_id,
-                unit=unit,
-                timestamp=ts,
-                value=value
+                unit_name=metric,
+                timestamp=data['ts'] / 1000,
+                value=data['value']
             )
 
-    def create_sensor_entry(self, beehive_id, name, type, units, installation_date, last_seen, is_active):
+    def create_sensor_entry(self, name, type, installation_date, last_seen, is_active):
         """Create new sensor entry in database"""
         query = """
-        INSERT INTO sensors (beehive_id, sensor_name, sensor_type, measurement_units, 
-                           installation_date, last_seen, is_active)
-        VALUES (%s, %s, %s, %s, TO_DATE(%s, %s), to_timestamp(%s), %s)
-        RETURNING *
+        INSERT INTO sensors (sensor_name, sensor_type, installation_date, last_seen, is_active)
+        VALUES (%s, %s, TO_DATE(%s, %s), to_timestamp(%s), %s)
+        RETURNING sensor_id
         """
         params = (
-            beehive_id, name, type, units,
+            name, type,
             installation_date[0], installation_date[1],
             last_seen, is_active
         )
         return self.db.execute_query(query, params, fetch=True)
 
-    def insert_measurement(self, sensor_id, beehive_id, unit, timestamp, value):
-        """Insert measurement data into database"""
+    def create_beehive_sensor_relation(self, beehive_id, sensor_id):
+        """Create relationship between beehive and sensor"""
         query = """
-        INSERT INTO data (sensor_id, beehive_id, measurement_unit, ts, value)
+        INSERT INTO beehive_sensors (beehive_id, sensor_id)
+        VALUES (%s, %s)
+        ON CONFLICT DO NOTHING
+        """
+        self.db.execute_query(query, (beehive_id, sensor_id))
+
+    def update_sensor_last_seen(self, sensor_id, timestamp):
+        """Update sensor's last seen timestamp"""
+        query = """
+        UPDATE sensors 
+        SET last_seen = to_timestamp(%s)
+        WHERE sensor_id = %s
+        """
+        self.db.execute_query(query, (timestamp, sensor_id))
+
+    def insert_measurement(self, sensor_id, beehive_id, unit_name, timestamp, value):
+        """Insert measurement data into database"""
+        # Ensure unit exists
+        unit_id = self.get_or_create_unit(unit_name)
+        
+        query = """
+        INSERT INTO data (sensor_id, beehive_id, unit_id, ts, value)
         VALUES (%s, %s, %s, to_timestamp(%s), %s)
         """
-        params = (sensor_id, beehive_id, unit, timestamp, value)
+        params = (sensor_id, beehive_id, unit_id, timestamp, value)
         self.db.execute_query(query, params)
+
+    def get_or_create_unit(self, unit_name):
+        """Get or create a measurement unit"""
+        query = """
+        INSERT INTO measurement_units (unit_name)
+        VALUES (%s)
+        ON CONFLICT (unit_name) DO UPDATE SET unit_name = EXCLUDED.unit_name
+        RETURNING unit_id
+        """
+        result = self.db.execute_query(query, (unit_name,), fetch=True)
+        return result[0] if result else None
 
     def run(self, interval=600):
         """Main loop to continuously collect data"""
@@ -185,14 +212,13 @@ class BeehiveDataCollector:
             while True:
                 print("Starting data collection cycle...")
                 self.collect_sensor_data()
-                print("All Data stored succesfully")
+                print("All Data stored successfully")
                 print(f"Sleeping for {interval} seconds...")
                 time.sleep(interval)
         except KeyboardInterrupt:
             print("Stopping data collector...")
         finally:
             self.db.close()
-
 
 if __name__ == "__main__":
     collector = BeehiveDataCollector()

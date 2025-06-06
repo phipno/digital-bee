@@ -9,10 +9,8 @@ CREATE TABLE if NOT EXISTS beehives (
 
 CREATE TABLE if NOT EXISTS sensors (
     sensor_id SERIAL PRIMARY KEY,
-    beehive_id SERIAL REFERENCES beehives(beehive_id),
     sensor_name VARCHAR(50),
     sensor_type VARCHAR(50),
-    measurement_units TEXT,
     installation_date DATE,
     last_seen TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE
@@ -20,9 +18,21 @@ CREATE TABLE if NOT EXISTS sensors (
 
 CREATE TABLE if NOT EXISTS data (
     reading_id SERIAL PRIMARY KEY,
-    sensor_id SERIAL REFERENCES sensors(sensor_id),
-    beehive_id SERIAL REFERENCES beehives(beehive_id),
-    measurement_unit VARCHAR(50),
+    sensor_id INTEGER REFERENCES sensors(sensor_id),
+    beehive_id INTEGER REFERENCES beehives(beehive_id),
+    unit_id INTEGER REFERENCES measurement_units(unit_id),
     ts TIMESTAMP,
     value FLOAT NOT NULL
+);
+
+CREATE TABLE if NOT EXISTS measurement_units (
+    unit_id SERAIL PRIMARY KEY,
+    sensord_id SERAIL REFERENCES sensors(sensord_id),
+    unit_name VARCHAR(50) UNIQUE NOT NULL,
+);
+
+CREATE TABLE if NOT EXISTS beehive_sensors (
+    beehive_id INTEGER REFERENCES beehives(beehive_id),
+    sensor_id INTEGER REFERENCES sensors(sensor_id),
+    PRIMARY KEY (beehive_id, sensor_id)
 );

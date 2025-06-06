@@ -7,273 +7,709 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
     <script src="https://cdn.jsdelivr.net/npm/moment"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
+        :root {
+            --primary-color: #ff9800;
+            --primary-dark: #f57c00;
+            --secondary-color: #4CAF50;
+            --accent-color: #2196F3;
+            --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --text-primary: #333;
+            --text-secondary: #666;
+            --border-color: #e0e0e0;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --danger-color: #f44336;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
         .header {
-            max-height: 10vh;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--glass-border);
             display: flex;
             align-items: center;
-            margin-bottom: 2vh;
-        }
-        .header h1 {
-            margin: 0;
-            color: #ff9800;
-        }
-        .header img {
-            height: 50px;
-            margin-right: 15px;
-        }
-        .dashboard {
-            display: flex;
-            gap: 20px;
-        }
-        .beehive-list {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            height: 100%;
-            width: 250px; /* Fixed width when expanded */
-            overflow-y: auto;
-            transition: width 0.3s ease;
-        }        
-        .beehive-list.collapsed {
+            justify-content: space-between;
+            position: relative;
             overflow: hidden;
         }
-        .beehive-list.collapsed .list-content {
-            display: none;
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color), var(--accent-color));
         }
-        .beehive-list.collapsed .toggle-btn {
-            transform: rotate(180deg);
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
-        .toggle-btn {
+
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+
+        .bee-icon {
+            font-size: 2.5rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .mode-toggle {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 8px 16px;
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .mode-toggle:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .mode-toggle.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            height: calc(100vh - 140px);
+        }
+
+        .sidebar {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .collapse-btn {
             background: none;
             border: none;
+            color: white;
+            font-size: 1.2rem;
             cursor: pointer;
-            transition: transform 0.3s ease;
-            color: #ff9800;
-            font-size: 1.2em;
-        }
-        .beehive-item {
-            padding: 5px  10px 0px 10px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-        }
-        .beehive-item.active {
-            background-color: #fff8e1;
-            border-left: 3px solid #ff9800;
-        }
-        .chart-container {
-            background: white;
+            padding: 5px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            height: 75vh;
+            transition: all 0.3s ease;
         }
-        .bee-chart-container {
-            display: flex;
-            height:50%;
-            width: 100%;
-            overflow: auto;
+
+        .collapse-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
         }
-        .weather-chart-container {
-            display: flex;
-            height: 50%;
-            overflow: auto;
-            width: 100%;
+
+        .beehive-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
         }
-        .main-content {
+
+        .beehive-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            margin: 8px 0;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .beehive-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
             height: 100%;
-            flex-grow: 1;
+            background: var(--primary-color);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
         }
-        .controls {
+
+        .beehive-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .beehive-item:hover::before {
+            transform: scaleY(1);
+        }
+
+        .beehive-item.active {
+            background: linear-gradient(45deg, rgba(255, 152, 0, 0.1), rgba(76, 175, 80, 0.1));
+            border-color: var(--primary-color);
+            transform: translateX(5px);
+        }
+
+        .beehive-item.active::before {
+            transform: scaleY(1);
+        }
+
+        .beehive-item h3 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+
+        .beehive-item p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .beehive-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .controls-panel {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--glass-border);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .time-buttons {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
             flex-wrap: wrap;
         }
-        .date-range-controls {
+
+        .time-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
+        }
+
+        .time-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .date-inputs {
             display: flex;
             gap: 10px;
             align-items: center;
         }
-        button {
-            background-color: #ff9800;
+
+        .flatpickr-input {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .flatpickr-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+        }
+
+        .load-btn {
+            background: linear-gradient(45deg, var(--primary-color), var(--primary-dark));
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        button:hover {
-            background-color: #f57c00;
+
+        .load-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.3);
         }
-        select {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
+
+        .sensor-selector {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            width: 100%;
         }
-        .flatpickr-input {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            width: 150px;
-        }
-        .toggle-btn-container {
+
+        .charts-area {
+            flex: 1;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
             display: flex;
-            flex-direction: no-wrap;
+            flex-direction: column;
         }
+
+        .charts-header {
+            background: linear-gradient(45deg, var(--glass-bg), rgba(255, 255, 255, 0.05));
+            padding: 20px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .charts-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .layout-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .layout-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .layout-btn:hover, .layout-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .charts-container {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        .charts-container.grid-1x1 { grid-template-columns: 1fr; }
+        .charts-container.grid-2x1 { grid-template-columns: 1fr 1fr; }
+        .charts-container.grid-2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+        .charts-container.grid-3x1 { grid-template-columns: 1fr 1fr 1fr; }
+
+        .chart-widget {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 300px;
+            cursor: move;
+        }
+
+        .chart-widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-widget.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .chart-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
         .chart-actions {
             display: flex;
             gap: 5px;
-            margin-top: 5px;
         }
-        .chart-actions button {
-            padding: 4px 8px;
-            font-size: 0.8em;
-        }
-        @media (orientation: landscape) {
-            .main-content {
-                max-width: calc(100vw - 300px);
-            }
-            .dashboard {
-                max-height: 88vh;
-            }
-            .beeChart {
-                max-width: 50%;
-            }
-            .weatherChart {
-                max-width: 33%;
-            }
-        }
-        @media (max-aspect-ratio: 1.0) and (min-aspect-ratio: 0.6),
-        (orientation: portrait) and (max-width: 768px) {
-            .controls {
-                display: flex;
-                flex-direction: column;
-            }
-            .date-range-controls {
-                display: flex;
-                align-items: flex-start;
-                width: 100%;
-                gap: 1%;
-            }
-            .quick-time-buttons {
-                display: flex;
-                justify-content: center;
-                gap: 2%;
-            }
-            .quick-time-btn {
-                width: 33%;
-                padding: inherit;
-            }
-            .load-data-btn {
-                width: 100%;
-            }
-            .flatpickr-input {
-                width: 33%;
-            }
-            .dashboard {
-                flex-direction: column;
-            }
-        
-            .beehive-list {
-                width: 100%;
 
+        .chart-action-btn {
+            background: none;
+            border: none;
+            padding: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .chart-action-btn:hover {
+            background: var(--glass-bg);
+            color: var(--primary-color);
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: calc(100% - 60px);
+            min-height: 200px;
+        }
+
+        .stats-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .chart-widget:hover .stats-overlay {
+            opacity: 1;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .sidebar.collapsed .sidebar-header span {
+            display: none;
+        }
+
+        .sidebar.collapsed .beehive-list {
+            padding: 5px;
+        }
+
+        .sidebar.collapsed .beehive-item {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .sidebar.collapsed .beehive-item h3,
+        .sidebar.collapsed .beehive-item p {
+            display: none;
+        }
+
+        .dashboard.sidebar-collapsed {
+            grid-template-columns: 80px 1fr;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--glass-border);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: 280px 1fr;
             }
-            .toggle-btn-container h2 {
-                padding: 8px 0px 8px 0px;
-                margin: 0;
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
             }
-            .list-content h3,
-            .list-content p{
-                margin: 1vh;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 15px;
             }
-            .beehive-list.collapsed {
-                width: 100%;
-            }
-        
-            .main-content {
+            
+            .sidebar {
+                order: 2;
                 height: auto;
+                max-height: 300px;
             }
-        
-            .chart-container {
-                max-width: 100%;
-                height: auto;
+            
+            .header h1 {
+                font-size: 1.5rem;
             }
-        
-            .bee-chart-container,
-            .weather-chart-container {
+            
+            .time-buttons {
+                justify-content: center;
+            }
+            
+            .date-inputs {
                 flex-direction: column;
-                width: 100%;
-                height: auto;
+                gap: 10px;
             }
-            .beeChart,
-            .weatherChart,
-            .sensorChart {
-                max-height: 33vh;
-                min-height: 33vh;
+            
+            .charts-container.grid-2x1,
+            .charts-container.grid-2x2,
+            .charts-container.grid-3x1 {
+                grid-template-columns: 1fr;
             }
+        }
+
+        /* Chart-specific styles */
+        .weather-chart {
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .bee-chart {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .comparison-chart {
+            border-left: 4px solid var(--secondary-color);
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--glass-bg);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🐝 Beehive Monitoring Dashboard</h1>
-    </div>
-    
-    <div class="dashboard">
-        <div class="beehive-list" id="beehiveList">
-            <div class="toggle-btn-container">
-                <button class="toggle-btn" onclick="Dashboard.toggleBeehiveList()">◀ </button>
-                <h2>Beehives</h2>
+    <div class="dashboard-container">
+        <div class="header">
+            <div class="header-left">
+                <div class="bee-icon">🐝</div>
+                <h1>Beehive Monitoring Dashboard</h1>
             </div>
-            <div class="list-content">
-                <!-- Beehives will be loaded here -->
+            <div class="header-right">
+                <button class="mode-toggle" onclick="Dashboard.toggleDashboardMode()">Standard View</button>
+                <button class="mode-toggle" onclick="Dashboard.toggleDashboardMode(true)">Dashboard+</button>
             </div>
         </div>
         
-        <div class="main-content" id="mainContent">
-            <div class="controls">
-                <div class="quick-time-buttons">
-                    <button class="quick-time-btn" onclick="Dashboard.setHours(24)">1 Day</button>
-                    <button class="quick-time-btn" onclick="Dashboard.setHours(168)">1 Week</button>
-                    <button class="quick-time-btn" onclick="Dashboard.setHours(720)">1 Month</button>
+        <div class="dashboard" id="dashboard">
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <span>Beehives</span>
+                    <button class="collapse-btn" onclick="Dashboard.toggleSidebar()">◀</button>
                 </div>
-                <!-- Date range picker -->
-                <div class="date-range-controls">
-                    <input type="text" id="startDate" class="flatpickr-input" placeholder="Start Date">
-                    <span>to</span>
-                    <input type="text" id="endDate" class="flatpickr-input" placeholder="End Date">
-                    <button class="load-data-btn" onclick="Dashboard.loadData()">Load</button>
+                <div class="beehive-list" id="beehiveList">
+                    <!-- Beehives will be loaded here -->
+                </div>
+            </div>
+            
+            <div class="main-content">
+                <div class="controls-panel">
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <div class="control-label">Quick Time Selection</div>
+                            <div class="time-buttons">
+                                <button class="time-btn" onclick="Dashboard.setHours(24)">1 Day</button>
+                                <button class="time-btn" onclick="Dashboard.setHours(168)">1 Week</button>
+                                <button class="time-btn" onclick="Dashboard.setHours(720)">1 Month</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <div class="control-label">Custom Date Range</div>
+                            <div class="date-inputs">
+                                <input type="text" id="startDate" class="flatpickr-input" placeholder="Start Date">
+                                <span>to</span>
+                                <input type="text" id="endDate" class="flatpickr-input" placeholder="End Date">
+                                <button class="load-btn" onclick="Dashboard.loadData()">Load</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-group" style="margin-top: 15px;">
+                        <div class="control-label">Sensor Selection</div>
+                        <select id="sensorSelect" class="sensor-selector">
+                            <option value="Dashboard view">Dashboard view</option>
+                        </select>
+                    </div>
                 </div>
 
-                <!-- <button onclick="Dashboard.resetZoomAll()">Reset Zoom</button> -->
-            </div>
-
-            <div class="sensor-selector">
-                <select id="sensorSelect">
-                    <option value="Dashboard view">Dashboard view</option>
-                    <!-- Sensors will be loaded here -->
-                </select>
-            </div>
-            <div class="chart-container" id="chartContainer">
-                <!-- <div class="bee-chart-container"> -->
-                    <!-- Charts will be loaded here -->
-                <!-- </div> -->
-                <!-- <div class="weather-chart-container"> -->
-                    <!-- Weather charts will be loaded here -->
-                <!-- </div> -->
+                <div class="charts-area">
+                    <div class="charts-header">
+                        <div class="charts-title">Data Visualization</div>
+                        <div class="layout-controls">
+                            <button class="layout-btn active" onclick="Dashboard.setLayout('grid-1x1')">1×1</button>
+                            <button class="layout-btn" onclick="Dashboard.setLayout('grid-2x1')">2×1</button>
+                            <button class="layout-btn" onclick="Dashboard.setLayout('grid-2x2')">2×2</button>
+                            <button class="layout-btn" onclick="Dashboard.setLayout('grid-3x1')">3×1</button>
+                        </div>
+                    </div>
+                    <div class="charts-container grid-1x1" id="chartsContainer">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📊</div>
+                            <h3>Select a beehive to start monitoring</h3>
+                            <p>Choose one or more beehives from the sidebar to view their sensor data</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -283,12 +719,16 @@
             // Configuration constants
             const CONFIG = {
                 MAX_DATA_GAP: 1000 * 60 * 60 * 3, // 3 hours in ms
-                CHART_COLORS: ['#ff9800', '#4CAF50', '#2196F3', '#9C27B0', '#FF5722', '#607D8B'],
-                WEATHER_STATION_COLOR: '#0055FF',
+                CHART_COLORS: ['#ff9800', '#4CAF50', '#2196F3', '#9C27B0', '#FF5722', '#607D8B', '#795548', '#009688'],
+                WEATHER_STATION_COLOR: '#2196F3',
                 BEEHIVE_COLOR: '#ff9800',
                 CHART_OPTIONS: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     scales: {
                         x: {
                             type: 'time',
@@ -300,25 +740,36 @@
                                     hour: 'MMM d, HH:mm'
                                 }
                             },
-                            title: { display: true, text: 'Time' }
+                            title: { display: true, text: 'Time' },
+                            grid: { color: 'rgba(0,0,0,0.1)' }
                         }
                     },
                     plugins: {
-                        // zoom: {
-                        //     zoom: {
-                        //         wheel: {
-                        //             enabled: true,
-                        //         },
-                        //         pinch: {
-                        //             enabled: true
-                        //         },
-                        //         mode: 'xy',
-                        //     },
-                        //     pan: {
-                        //         enabled: true,
-                        //         mode: 'xy',
-                        //     }
-                        // }
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleColor: 'white',
+                            bodyColor: 'white',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true
+                        }
+                    },
+                    elements: {
+                        point: {
+                            radius: 3,
+                            hoverRadius: 6
+                        },
+                        line: {
+                            tension: 0.4
+                        }
                     }
                 }
             };
@@ -330,16 +781,22 @@
                 currentEndDate: null,
                 sensorCharts: [],
                 apiBaseUrl: '/api',
-                datePicker: null
+                datePicker: null,
+                dashboardMode: 'standard',
+                currentLayout: 'grid-1x1',
+                chartWidgets: [],
+                sortableInstance: null
             };
         
             // DOM Elements
             const elements = {
                 beehiveList: document.getElementById('beehiveList'),
                 sensorSelect: document.getElementById('sensorSelect'),
-                chartContainer: document.getElementById('chartContainer'),
+                chartsContainer: document.getElementById('chartsContainer'),
                 startDate: document.getElementById('startDate'),
-                endDate: document.getElementById('endDate')
+                endDate: document.getElementById('endDate'),
+                sidebar: document.getElementById('sidebar'),
+                dashboard: document.getElementById('dashboard')
             };
         
             // Initialize the dashboard
@@ -347,6 +804,7 @@
                 initDatePicker();
                 loadBeehives();
                 setupEventListeners();
+                initSortable();
                 
                 // Set default date range (last 24 hours)
                 const endDate = new Date();
@@ -358,6 +816,20 @@
                 
                 elements.startDate._flatpickr.setDate(startDate);
                 elements.endDate._flatpickr.setDate(endDate);
+            }
+
+            function initSortable() {
+                state.sortableInstance = Sortable.create(elements.chartsContainer, {
+                    animation: 300,
+                    ghostClass: 'dragging',
+                    onStart: function(evt) {
+                        evt.item.classList.add('dragging');
+                    },
+                    onEnd: function(evt) {
+                        evt.item.classList.remove('dragging');
+                        // Update chart order in state if needed
+                    }
+                });
             }
         
             // Initialize date pickers
@@ -410,411 +882,28 @@
                 const diffMs = endDate - startDate;
                 return Math.round(diffMs / (1000 * 60 * 60)); // Convert ms to hours
             }
-
         
             // Set up event listeners
             function setupEventListeners() {
                 elements.sensorSelect.addEventListener('change', () => loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)));
             }
-        
-            // Toggle beehive list visibility
-            function toggleBeehiveList() {
-                elements.beehiveList.classList.toggle('collapsed');
-            }
-        
-            // API Helpers
-            async function fetchData(url) {
-                try {
-                    const response = await fetch(`${state.apiBaseUrl}${url}`);
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    return await response.json();
-                } catch (error) {
-                    console.error(`Error fetching data from ${url}:`, error);
-                    return null;
-                }
-            }
-        
-            // Beehive Management
-            async function loadBeehives() {
-                const data = await fetchData('/beehives');
-                if (!data) return;
-            
-                const listContent = document.querySelector('.beehive-list .list-content');
-                listContent.innerHTML = '';
-            
-                data.forEach(beehive => {
-                    const div = document.createElement('div');
-                    div.className = 'beehive-item';
-                    div.id = `beehiveId-${beehive.id}`;
-                    div.innerHTML = `
-                        <h3>${beehive.name}</h3>
-                        <p>Installed: ${beehive.installation_date}</p>
-                    `;
-                    div.addEventListener('click', () => selectBeehive(beehive.id));
-                    listContent.appendChild(div);
-                });
-            }
-        
-            function selectBeehive(beehiveId) {
-                const index = state.currentBeehiveIds.indexOf(beehiveId);
 
-                if (index !== -1) {
-                    state.currentBeehiveIds.splice(index, 1);
-                    document.getElementById(`beehiveId-${beehiveId}`)?.classList.remove('active');
-                } else {
-                    state.currentBeehiveIds.push(beehiveId);
-                    document.getElementById(`beehiveId-${beehiveId}`)?.classList.add('active');
-                }
-            
-                if (state.currentBeehiveIds.length === 1) {
-                    loadSensors(state.currentBeehiveIds[0]);
-                } else {
-                    compareSensors();
-                }
-            }
-        
-            // Sensor Management
-            async function loadSensors(beehiveId) {
-                const data = await fetchData('/sensors');
-                if (!data) return;
-            
-                const sensors = data.filter(sensor => sensor.beehive_id == beehiveId);
-                const dashboardView = elements.sensorSelect.firstElementChild;
-                elements.sensorSelect.replaceChildren(dashboardView);
-            
-                sensors.forEach(sensor => {
-                    sensor.units.split(',').forEach(unit => {
-                        const option = document.createElement('option');
-                        option.value = `${sensor.id}|${sensor.beehive_id}|${sensor.name}|${unit}`;
-                        option.textContent = `${sensor.id}.${sensor.beehive_id}. ${sensor.name} (${unit})`;
-                        elements.sensorSelect.appendChild(option);
-                    });
-                });
-            
-                if (sensors.length > 0) {
-                    loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate));
-                }
-            }
-        
-            async function compareSensors() {
-                elements.sensorSelect.innerHTML = '<option value="Dashboard view">Dashboard view</option>';
-                if (state.currentBeehiveIds.length === 0) return;
-            
-                const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
-                    fetchData(`/sensors?beehive_id=${beehiveId}`)
-                );
-            
-                const allBeehiveSensors = await Promise.all(sensorPromises);
-                const unitCounts = {};
-            
-                allBeehiveSensors.forEach((sensors, index) => {
-                    const beehiveId = state.currentBeehiveIds[index];
-                    sensors.forEach(sensor => {
-                        if (sensor.name !== "LoRa-2CF7F1C0613005BC") {
-                            sensor.units.split(',').forEach(unit => {
-                                if (!unitCounts[unit]) unitCounts[unit] = new Set();
-                                unitCounts[unit].add(beehiveId);
-                            });
-                        }
-                    });
-                });
-            
-                Object.entries(unitCounts).forEach(([unit, beehiveIds]) => {
-                    if (beehiveIds.size === state.currentBeehiveIds.length) {
-                        const option = document.createElement('option');
-                        option.value = unit;
-                        option.textContent = `Compare ${unit}`;
-                        elements.sensorSelect.appendChild(option);
-                    }
-                });
-            
-                if (elements.sensorSelect.options.length > 1) {
-                    loadData(calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate));
-                }
-            }
-        
-            // Data Loading and Chart Management
-            async function loadData(hours) {
-                state.currentHours = hours;
-                clearCharts();
-                elements.chartContainer.innerHTML = '';
-            
-                const selectedOption = elements.sensorSelect.value;
-            
-                if (selectedOption === 'Dashboard view') {
-                    await createDashboardView();
-                    return;
-                }
-            
-                if (!selectedOption.includes('|')) {
-                    await loadComparisonData(selectedOption, elements.chartContainer)
-                } else {
-                    await loadSingleSensorData(selectedOption);
-                }
-            }
-        
-            async function loadComparisonData(unit, container) {
-                if (container)
-                    container.innerHTML = '';
-                const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
-                    fetchData(`/sensors_by_beehive/${beehiveId}`)
-                );
-            
-                const allBeehiveSensors = await Promise.all(sensorPromises);
-                const dataPromises = [];
-                const labels = [];
-            
-                allBeehiveSensors.forEach((sensors, index) => {
-                    const beehiveId = state.currentBeehiveIds[index];
-                    
-                    const validSensors = sensors.filter(s => {
-                        if (s.name === "LoRa-2CF7F1C0613005BC")
-                            return false;
-                        return s.units.split(',').includes(unit);
-                    });
-                    
-                    validSensors.forEach(sensor => {
-                        labels.push(`Beehive ${beehiveId} - ${sensor.name}`);
-                        dataPromises.push(
-                            fetchData(`/sensor_data/${sensor.id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`))
-                    });
-                });
-            
-                const allData = await Promise.all(dataPromises);
-                if (allData.length) {
-                    const canvas = elements.sensorSelect.value == 'Dashboard view' ? 
-                        createCanvas('beeChart', container): 
-                        createCanvas('sensorChart', container);  
-                    updateComparisonChart(canvas.getContext('2d'), allData, unit, labels);
-                }
-            }
-        
-            async function loadSingleSensorData(selectedOption) {
-                const [sensor_id, beehive_id, sensorName, unit] = selectedOption.split('|');
-                const data = await fetchData(`/sensor_data/${sensor_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`);
-                if (!data) return;
-            
-                const canvas = createCanvas('sensorChart');
-                updateChart(canvas.getContext('2d'), data, sensorName, unit);
-            }
-        
-            async function createDashboardView() {
-                const isComparisonMode = !elements.sensorSelect.value.includes('|') && 
-                                       state.currentBeehiveIds.length > 1;
-            
-                const beeChartContainer = createChartContainer('bee-chart-container');
-                const weatherChartContainer = createChartContainer('weather-chart-container');
-                elements.chartContainer.append(beeChartContainer, weatherChartContainer);
-                if (isComparisonMode) {
-                    await createComparisonDashboard(beeChartContainer, weatherChartContainer);
-                } else {
-                    await createStandardDashboard(beeChartContainer, weatherChartContainer);
-                }
+            // Layout management
+            function setLayout(layout) {
+                // Remove active class from all layout buttons
+                document.querySelectorAll('.layout-btn').forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                event.target.classList.add('active');
+                
+                // Update container class
+                elements.chartsContainer.className = `charts-container ${layout}`;
+                state.currentLayout = layout;
+                
+                // Resize charts
+                setTimeout(() => {
+                    state.sensorCharts.forEach(chart => chart?.resize());
+                }, 100);
             }
 
-            async function createComparisonDashboard(beeContainer, weatherContainer) {
-                const sensorPromises = state.currentBeehiveIds.map(beehiveId => 
-                    fetchData(`/sensors_by_beehive/${beehiveId}`)
-                );
-            
-                let promise = undefined;
-                const compareUnits = Array.from(elements.sensorSelect)
-                    .slice(1)
-                    .map(opt => loadComparisonData(opt.value, beeContainer));  
-
-                const weatherSensor = await fetchData(`/sensors_by_id/1`)
-                const units = weatherSensor[0].units.split(',');
-                for (const unit of units) {
-                    const data = await fetchData(`/sensor_data/1/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
-                    const canvas = createCanvas('weatherChart', weatherContainer);
-                    updateChart(canvas.getContext('2d'), data, weatherSensor[0].name, unit, true);
-                }
-            }
-        
-            async function createStandardDashboard(beeContainer, weatherContainer) {
-                const options = Array.from(elements.sensorSelect.children);
-                const promises = [];
-            
-                options.forEach(option => {
-                    if (option.value === 'Dashboard view') return;
-                    const [sensor_id, beehive_id, sensorName, unit] = option.value.split('|');
-
-                    promises.push(
-                        fetchData(`/sensor_data/${sensor_id}/${unit}/${calculateHoursBetweenDates(state.currentStartDate, state.currentEndDate)}`)
-                            .then(data => ({
-                                data,
-                                sensorName,
-                                unit,
-                                isWeather: sensorName === "LoRa-2CF7F1C0613005BC"
-                            }))
-                    );
-                });
-            
-                const results = await Promise.all(promises);
-                results.forEach(result => {
-                    if (!result) return;
-                    const container = result.isWeather ? weatherContainer : beeContainer;
-                    const canvas = createCanvas(result.isWeather ? 'weatherChart' : 'beeChart', container);
-                    updateChart(canvas.getContext('2d'), result.data, result.sensorName, result.unit, result.isWeather);
-                });
-            }
-        
-            // Chart Helpers
-            function createCanvas(className, parent = elements.chartContainer) {
-                const canvas = document.createElement('canvas');
-                canvas.classList.add(className);
-                parent.appendChild(canvas);
-                return canvas;
-            }
-        
-            function createChartContainer(className) {
-                const container = document.createElement('div');
-                container.classList.add(className);
-                return container;
-            }
-        
-            function clearCharts() {
-                state.sensorCharts.forEach(chart => chart?.destroy());
-                state.sensorCharts = [];
-            }
-        
-            function isGapTooBig(context) {
-                const prevPoint = context.p0;
-                const nextPoint = context.p1;
-            
-                if (!prevPoint || !nextPoint) return true;
-            
-                const prevTime = prevPoint.parsed ? new Date(prevPoint.parsed.x) : new Date(prevPoint.x);
-                const nextTime = nextPoint.parsed ? new Date(nextPoint.parsed.x) : new Date(nextPoint.x);
-
-                return Math.abs(nextTime - prevTime) > CONFIG.MAX_DATA_GAP;
-            }
-        
-            function updateChart(ctx, data, sensorName, unit, isWeather = false) {
-                const borderColor = isWeather ? CONFIG.WEATHER_STATION_COLOR : CONFIG.BEEHIVE_COLOR;
-                const backgroundColor = isWeather ? 
-                    hexToRgba(CONFIG.WEATHER_STATION_COLOR, 0.1) : 
-                    hexToRgba(CONFIG.BEEHIVE_COLOR, 0.1);
-            
-                const pointRadius = data.length > 100 ? 0.01 : 1;
-                const pointHoverRadius = data.length > 100 ? 0 : 1;
-            
-                const chartOptions = {
-                    ...CONFIG.CHART_OPTIONS,
-                    scales: {
-                        ...CONFIG.CHART_OPTIONS.scales,
-                        y: { title: { display: true, text: unit } }
-                    }
-                };
-            
-                const chart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(item => item.timestamp),
-                        datasets: [{
-                            label: `${sensorName} (${unit})`,
-                            data: data.map(item => item.value),
-                            borderColor: borderColor,
-                            backgroundColor: backgroundColor,
-                            borderWidth: 2,
-                            fill: true,
-                            pointRadius: pointRadius,
-                            segment: {
-                                borderColor: ctx => isGapTooBig(ctx) ? 'rgba(200, 200, 200, 1)' : borderColor,
-                                borderDash: ctx => isGapTooBig(ctx) ? [6, 6] : [0, 0],
-                                borderWidth: ctx => isGapTooBig(ctx) ? 1 : 2
-                            }
-                        }]
-                    },
-                    options: chartOptions
-                });
-            
-                if (data.length > 200) {
-                    chart.options.plugins.decimation = {
-                        algorithm: 'lttb',
-                        enabled: true,
-                        samples: 500
-                    };
-                }
-            
-                state.sensorCharts.push(chart);
-            }
-        
-            function updateComparisonChart(ctx, allData, unit, labels) {
-                const datasets = allData.map((data, index) => ({
-                    label: `${labels[index]} (${unit})`,
-                    data: data.map(item => ({x: item.timestamp, y: item.value})),
-                    borderColor: CONFIG.CHART_COLORS[index % CONFIG.CHART_COLORS.length],
-                    backgroundColor: hexToRgba(CONFIG.CHART_COLORS[index % CONFIG.CHART_COLORS.length], 0.1),
-                    borderWidth: 2,
-                    fill: true,
-                    pointRadius: data.length > 100 ? 0.5 : 3
-                }));
-            
-                const allTimestamps = [...new Set(
-                    allData.flatMap(data => data.map(item => item.timestamp))
-                )].sort();
-            
-                const chart = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels: allTimestamps, datasets },
-                    options: {
-                        ...CONFIG.CHART_OPTIONS,
-                        scales: {
-                            ...CONFIG.CHART_OPTIONS.scales,
-                            y: { title: { display: true, text: unit } }
-                        }
-                    }
-                });
-            
-                state.sensorCharts.push(chart);
-            }
-        
-            // Utility Functions
-            function hexToRgba(hex, alpha) {
-                const r = parseInt(hex.slice(1, 3), 16);
-                const g = parseInt(hex.slice(3, 5), 16);
-                const b = parseInt(hex.slice(5, 7), 16);
-                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-            }
-            
-            function formatDate(date) {
-                return date.toISOString().replace('T', ' ').split('.')[0];
-            }
-            
-            function formatDateForAPI(date) {
-                return date.toISOString().replace('T', ' ').split('.')[0];
-            }
-
-            // function resetZoom(button) {
-            //     const canvas = button.closest('div').querySelector('canvas');
-            //     const chart = Chart.getChart(canvas);
-            //     if (chart) {
-            //         chart.resetZoom();
-            //     }
-            // }
-            
-            // function resetZoomAll() {
-            //     state.sensorCharts.forEach(chart => {
-            //         if (chart) {
-            //             chart.resetZoom();
-            //         }
-            //     });
-            // }
-        
-            // Public API
-            return {
-                init,
-                toggleBeehiveList,
-                loadData,
-                // resetZoom,
-                // resetZoomAll,
-                setHours
-            };
-        })();
-
-        // Initialize the dashboard when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => Dashboard.init());
-    </script>
-</body>
-</html>
+            // Dashboard mode management
+            function toggleDashboardMode(isDashboar
